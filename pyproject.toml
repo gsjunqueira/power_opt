@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "power-opt"
+version = "0.1.0"
+description = "Modelo de programação linear para sistema elétrico com perdas, rampa e emissão"
+authors = ["gsjunqueira <giovanisjunqueira@gmail.com>"]
+readme = "README.md"
+packages = [
+    { include = "power_opt" }
+]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+pyomo = "^6.9.2"
+highspy = "^1.10.0"
+scipy = "^1.15.3"
+pandas = "^2.2.3"
+matplotlib = "^3.10.3"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

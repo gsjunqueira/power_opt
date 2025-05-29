@@ -1,0 +1,40 @@
+{
+    "PB" : 100,
+
+    "barras": [
+        {"id": "B1"},
+        {"id": "B2"},
+        {"id": "B3"}
+    ],
+
+    "geradores": [
+        {"id": "G1", "tipo": "thermal", "barra": "B1", "custo": 10, "gmin": 5, "gmax": 35, "rampa": 5, "emissao": 10},
+        {"id": "G2", "tipo": "thermal", "barra": "B2", "custo": 30, "gmin": 10, "gmax": 40, "rampa": 4, "emissao": 90},
+        {"id": "G3", "tipo": "thermal", "barra": "B3", "custo": 40, "gmin": 1, "gmax": 45, "rampa": 10, "emissao": 70}
+    ],
+
+    "linhas": [
+        {"de": "B1", "para": "B2", "susceptancia": 33, "condutancia": 25, "limite": 6},
+        {"de": "B1", "para": "B3", "susceptancia": 50, "condutancia": 20, "limite": 12},
+        {"de": "B1", "para": "B3", "susceptancia": 50, "condutancia": 20, "limite": 12},
+        {"de": "B2", "para": "B3", "susceptancia": 70, "condutancia": 20, "limite": 10}
+    ],
+
+    "config": {
+        "delta": 1.0,
+        "custo_emissao": 0.25,
+        "periodos": 1
+    },
+
+    "carga": [
+        [ {"id": "L1", "barra": "B2", "demanda": 40},
+          {"id": "L2", "barra": "B3", "demanda": 30}
+        ],
+        [ {"id": "L1", "barra": "B2", "demanda": 43},
+          {"id": "L2", "barra": "B3", "demanda": 33}
+        ],
+        [ {"id": "L1", "barra": "B2", "demanda": 35},
+          {"id": "L2", "barra": "B3", "demanda": 25}
+        ]
+    ]
+}
