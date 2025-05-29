@@ -1,6 +1,8 @@
 """
 Script principal para execução de experimentos de otimização do sistema elétrico.
 Executa o modelo para diferentes valores de delta e configurações, armazena e exporta os resultados.
+
+Autor: Giovani Santiago Junqueira
 """
 
 import pandas as pd

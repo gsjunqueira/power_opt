@@ -4,6 +4,8 @@ DataLoader module to construct a System object from a structured JSON file.
 Supports multiple generator types (thermal, hydro, wind), time-dependent loads,
 transmission losses, and optional cascade topology. Generator IDs are automatically
 prefixed by type for identification (e.g., GT, GH, GW, GF).
+
+Autor: Giovani Santiago Junqueira
 """
 
 import json

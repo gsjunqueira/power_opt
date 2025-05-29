@@ -6,6 +6,8 @@ Este pacote oferece duas abordagens:
 - `ScipySolver`: implementação baseada em scipy.optimize.linprog.
 
 Ambas as classes expõem métodos para construção e solução do problema de despacho ótimo.
+
+Autor: Giovani Santiago Junqueira
 """
 
 from .modelo_pyomo import PyomoSolver

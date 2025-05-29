@@ -1,5 +1,7 @@
 """
 Thermal generator with cost, emission, and ramp constraints.
+
+Autor: Giovani Santiago Junqueira
 """
 
 # pylint: disable=too-few-public-methods, too-many-arguments, too-many-positional-arguments

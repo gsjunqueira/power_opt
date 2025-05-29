@@ -1,5 +1,7 @@
 """
 Module that defines the Load class, representing the active power demand at a bus.
+
+Autor Giovani Santiago Junqueira
 """
 
 # pylint: disable=too-few-public-methods

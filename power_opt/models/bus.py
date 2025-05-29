@@ -2,6 +2,8 @@
 Defines the Bus class that represents a node in the power system.
 
 Each bus may be connected to one or more generators and loads.
+
+Autor: Giovani Santiago Junqueira
 """
 
 from typing import List

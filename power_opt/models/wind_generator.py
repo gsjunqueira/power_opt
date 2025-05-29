@@ -1,5 +1,7 @@
 """
 Defines a wind generator with a power curve.
+
+Autor: Giovani Santiago Junqueira
 """
 
 # pylint: disable=too-few-public-methods, too-many-arguments, too-many-positional-arguments
@@ -18,3 +20,6 @@ class WindGenerator(BaseGenerator):
                  power_curve: dict, fictitious: bool = False):
         super().__init__(id_, bus, gmin, gmax, type_="wind", fictitious=fictitious)
         self.power_curve = power_curve  # Dictionary mapping wind speed to power output
+
+    def get_power_output(self, period: int) -> float:
+        return self.pg  # ou implemente lógica específica, se necessário

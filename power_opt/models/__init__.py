@@ -3,6 +3,8 @@ Initialization module for the models package.
 
 This package defines the core data structures representing the power system components:
 Bus, Load, Generator, Line, and System.
+
+Autor: Giovani Santiago Junqueira
 """
 
 from .bus import Bus

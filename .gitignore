@@ -1,2 +1,5 @@
 .DS_Store
-.venv
+power_opt/.DS_Store
+power_opt/solver/.DS_Store
+tests/.DS_Store
+.venv/

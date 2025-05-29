@@ -1,5 +1,7 @@
 """
 Defines a hydroelectric generator with reservoir and flow attributes.
+
+Autor: Giovani Santiago Junqueira
 """
 
 # pylint: disable=too-few-public-methods, too-many-arguments, too-many-positional-arguments
@@ -23,3 +25,6 @@ class HydroGenerator(BaseGenerator):
         self.volume_min = volume_min
         self.volume_max = volume_max
         self.productivity = productivity
+
+    def get_power_output(self, period: int) -> float:
+        return self.pg  # ou implemente lógica específica, se necessário

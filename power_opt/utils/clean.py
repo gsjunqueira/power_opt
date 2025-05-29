@@ -5,6 +5,8 @@ Remove todos os arquivos .pyc, .pyo e pastas __pycache__ do projeto.
 Útil para evitar erros de importação causados por módulos antigos em cache.
 
 Execução segura: pode rodar com o botão ▶️ no VS Code.
+
+Autor: Giovani Santiago Junqueira
 """
 
 import os

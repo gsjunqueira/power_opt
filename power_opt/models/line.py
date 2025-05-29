@@ -3,6 +3,8 @@ Module that defines the Line class, representing a transmission line in the powe
 
 Each line connects two buses and includes electrical parameters such as
 susceptance and conductance, as well as thermal flow limits.
+
+Autor: Giovani Santiago Junqueira
 """
 
 # pylint: disable=too-few-public-methods, too-many-arguments, too-many-positional-arguments
