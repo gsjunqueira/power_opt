@@ -11,8 +11,9 @@ Autor: Giovani Santiago Junqueira
 import json
 import re
 from pathlib import Path
+from collections import defaultdict
 from power_opt.models import (
-    Bus, Load, Line, System,
+    Bus, Load, Line, System, Deficit,
     ThermalGenerator, HydroGenerator, WindGenerator, FictitiousGenerator
 )
 
@@ -145,6 +146,43 @@ class DataLoader:
             fict = FictitiousGenerator(bus=bus_id, id_=id_)
             system.get_bus(bus_id).add_generator(fict)
             print(f"⚠️  Fictitious generator added at bus {bus_id} with id {id_}")
+
+        # --- Déficits explícitos fornecidos no JSON ---
+        if "deficits" in data:
+            for d in data["deficits"]:
+                id_ = f"CUT_{d['bus']}_t{d['period']}"
+                deficit = Deficit(
+                    id=id_,
+                    bus=d["bus"],
+                    period=d["period"],
+                    max_deficit=d["limite"],
+                    cost=d["custo"]
+                )
+                system.deficits.append(deficit)
+            print(f"ℹ️  {len(system.deficits)} déficits carregados diretamente do JSON.")
+
+        # --- Geração automática de déficits a partir das cargas ---
+        else:
+            # 1. Agrega a demanda total por (bus, t)
+            demanda_por_barra_tempo = defaultdict(float)
+
+            for t, cargas in enumerate(system.load_profile):
+                for carga in cargas:
+                    demanda_por_barra_tempo[(carga.bus, t)] += carga.demand
+
+            # 2. Cria um único Deficit por (bus, t)
+            for (bus, t), demanda_total in demanda_por_barra_tempo.items():
+                id_ = f"CUT_{bus}_t{t}"
+                deficit = Deficit(
+                    id=id_,
+                    bus=bus,
+                    period=t,
+                    max_deficit=demanda_total,
+                    cost=10000.0  # valor padrão para corte de carga
+                )
+                system.deficits.append(deficit)
+
+            print(f"⚠️  Déficits não definidos no JSON — {len(system.deficits)} gerados automaticamente com custo fixo.")
 
         # Cascata (apenas se houver hidrelétricas)
         if has_hydro and "cascata" in data:

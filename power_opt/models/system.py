@@ -18,8 +18,8 @@ Autor: Giovani Santiago Junqueira
 # pylint: disable=line-too-long
 
 from collections import defaultdict
-from typing import Dict, List, Optional
-from power_opt.models import Bus, Line, Load
+from typing import Dict, List, Optional, Tuple
+from power_opt.models import Bus, Line, Load, Deficit
 
 class System:
     """
@@ -43,11 +43,15 @@ class System:
         self.buses: Dict[str, Bus] = {}
         self.lines: List[Line] = []
         self.load_profile: List[List[Load]] = []
+        self.deficits: List[Deficit] = []
         self.base_power: float = 100.0
         self.config: dict = {}
         self.cascata: Optional[dict] = None
         self.perdas_barras: Dict[str, Dict[int, float]] = defaultdict(lambda: defaultdict(float))
         self.line_dict = {line.id: line for line in self.lines}
+        self.deficit_map: Dict[Tuple[str, int], Deficit] = {
+            (d.bus, d.period): d for d in self.deficits
+        }
 
     def add_bus(self, bus: Bus):
         """Adiciona uma barra ao sistema.
@@ -150,3 +154,21 @@ class System:
         print(f"- N. de geradores totais: {total_geradores} (Reais: {reais}, Fictícios: {ficticios})")
         print(f"- N. de relações de cascata: {len(self.cascata) if self.cascata else 0}")
         print("")
+
+    def get_deficit(self, bus: str, period: int) -> Optional[Deficit]:
+        """
+        Retorna o objeto Deficit associado a uma barra e período específicos, se existir.
+
+        Esta função consulta o mapeamento interno `deficit_map` que associa tuplas
+        (bus, period) a objetos Deficit, permitindo acesso rápido ao corte de carga
+        permitido para cada barra no horizonte de planejamento.
+
+        Args:
+            bus (str): Identificador da barra onde o déficit pode ocorrer.
+            period (int): Índice temporal (período) do planejamento.
+
+        Returns:
+            Optional[Deficit]: O objeto Deficit correspondente, ou None se não houver
+            déficit definido para a combinação de barra e período informada.
+        """
+        return self.deficit_map.get((bus, period))
