@@ -68,15 +68,18 @@ class PyomoSolver:
         """Executa a construção completa do modelo com base nas flags definidas."""
         self._definir_indices()
         self._definir_variaveis_geracao()
+        self._definir_variaveis_deficit()
         if self.considerar_fluxo:
             self._definir_variaveis_fluxo()
 
         self._definir_parametros_geradores()
+        self._definir_parametros_deficit()
         self._definir_parametros_carga()
         if self.considerar_fluxo:
             self._definir_parametros_linhas()
         self._definir_parametros_configuracao()
 
+        self._definir_restricoes_deficit()
         self._definir_restricoes_geracao()
         if self.considerar_fluxo:
             self._definir_restricoes_fluxo()
@@ -100,6 +103,13 @@ class PyomoSolver:
         model.T = RangeSet(0, len(self.system.load_profile) - 1)
         model.L = Set(initialize=[l.id for l in self.system.lines])
         model.F = Var(model.L, model.T, domain=Reals)
+        if self.system.config.get("usar_deficit", False):
+            self.model.D = Set(initialize=[(d.bus, d.period) for d in self.system.deficits], dimen=2)
+
+    def _definir_variaveis_deficit(self):
+        """Cria a variável de déficit (corte de carga) por barra e tempo, se habilitado."""
+        if self.system.config.get("usar_deficit", False):
+            self.model.Deficit = Var(self.model.D, domain=NonNegativeReals)
 
     def _definir_variaveis_geracao(self):
         """Cria variável de geração para cada gerador e período."""
@@ -110,6 +120,19 @@ class PyomoSolver:
         if hasattr(self.model, "F"):
             self.model.del_component("F")
         self.model.F = Var(self.model.L, self.model.T, domain=Reals)
+
+    def _definir_parametros_deficit(self):
+        """Define os parâmetros de penalidade e limite para variáveis de déficit, se habilitado."""
+        if self.system.config.get("usar_deficit", False):
+            custo_deficit = {}
+            limite_deficit = {}
+            for d in self.system.deficits:
+                chave = (d.bus, d.period)
+                custo_deficit[chave] = d.cost
+                limite_deficit[chave] = d.max_deficit
+
+            self.model.cost_deficit = Param(self.model.D, initialize=custo_deficit)
+            self.model.max_deficit = Param(self.model.D, initialize=limite_deficit)
 
     def _definir_parametros_geradores(self):
         """Inicializa parâmetros dos geradores: custo, emissão, rampa, gmin, gmax."""
@@ -186,6 +209,27 @@ class PyomoSolver:
         self.model.delta = Param(initialize=cfg.get("delta", 0.0))
         self.model.custo_emissao = Param(initialize=cfg.get("custo_emissao", 0.0))
 
+    def _definir_restricoes_deficit(self):
+        """Aplica o limite máximo de déficit se ativado."""
+        if self.system.config.get("usar_deficit", False):
+            def limites_deficit(model, b, t):
+                """
+                Restrição de limite superior para a variável de déficit.
+
+                Garante que o corte de carga na barra `b` no período `t` não ultrapasse
+                o valor máximo permitido, definido por `max_deficit[b, t]`.
+
+                Args:
+                    model: Modelo Pyomo contendo as variáveis e parâmetros.
+                    b (str): Identificador da barra.
+                    t (int): Índice do período de tempo.
+
+                Returns:
+                    Inequality constraint: Expressão do tipo Deficit[b, t] ≤ max_deficit[b, t].
+                """
+                return model.Deficit[b, t] <= model.max_deficit[b, t]
+            self.model.limite_deficit = Constraint(self.model.D, rule=limites_deficit)
+
     def _definir_restricoes_geracao(self):
         """Aplica limites mínimo e máximo de geração para cada gerador."""
         model = self.model
@@ -259,9 +303,10 @@ class PyomoSolver:
 
         def f_obj(model):
             """Minimiza a função objetivo ponderando custo e penalidade de emissão."""
-            custo_total = sum(model.P[g, t] * model.custo[g] for g in model.G for t in model.T)
+            custo_total = sum(model.P[g, t] * model.custo[g] for g in model.G if not g.startswith("GF") for t in model.T)
+            custo_deficit = sum(model.P[g, t] * model.custo[g] for g in model.G if g.startswith("GF") for t in model.T)
             penal_emissao = sum(model.P[g, t] * model.emissao[g] for g in model.G for t in model.T)
-            return model.delta * custo_total + (1 - model.delta) * model.custo_emissao * penal_emissao
+            return model.delta * custo_total + (1 - model.delta) * model.custo_emissao * penal_emissao + custo_deficit
 
         model.objetivo = Objective(rule=f_obj, sense=minimize)
 

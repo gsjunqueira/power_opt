@@ -33,7 +33,8 @@ def executar_experimentos(json_path: str, deltas: list[float], config_base: dict
         print(f"🔁 Execução {i+1}/{len(deltas)} | delta = {delta}")
 
         # Carregar sistema
-        system = DataLoader(json_path).load_system()
+        system = DataLoader(json_path, {"usar_deficit": config_base.get(
+            "usar_deficit", False)}).load_system()
         system.config.update(config_base)
         system.config["delta"] = delta
 
@@ -45,8 +46,8 @@ def executar_experimentos(json_path: str, deltas: list[float], config_base: dict
             considerar_rampa=config_base.get("considerar_rampa", True),
             considerar_emissao=config_base.get("considerar_emissao", True)
         )
-        modelo.modo_debug = True
-        modelo.debug_csv_path = "results/debug_perdas.csv"
+        # modelo.modo_debug = True
+        # modelo.debug_csv_path = "results/debug_perdas.csv"
         modelo.construir()
         # modelo.model.pprint()
         solver_nome = config_base.get("solver_name", "highs").lower()
@@ -79,7 +80,8 @@ def simular_n_menos_1(json_path: str, config_base: dict) -> pd.DataFrame:
     resultados = []
 
     # Carregar sistema base
-    sistema_base = DataLoader(json_path).load_system()
+    sistema_base = DataLoader(json_path, {"usar_deficit": config_base.get(
+        "usar_deficit", False)}).load_system()
 
     # N-1 para geradores
     geradores_base = [
@@ -88,7 +90,8 @@ def simular_n_menos_1(json_path: str, config_base: dict) -> pd.DataFrame:
     ]
     for i, gerador in enumerate(geradores_base):
         print(f"🔁 N-1 Gerador {i+1}/{len(geradores_base)} | removendo: {gerador.id}")
-        sistema = DataLoader(json_path).load_system()
+        sistema = DataLoader(json_path, {"usar_deficit": config_base.get(
+            "usar_deficit", False)}).load_system()
         sistema.config.update(config_base)
 
         # Remove gerador
@@ -120,7 +123,8 @@ def simular_n_menos_1(json_path: str, config_base: dict) -> pd.DataFrame:
     # N-1 para linhas
     for i, linha in enumerate(list(sistema_base.lines)):
         print(f"🔁 N-1 Linha {i+1}/{len(sistema_base.lines)} | removendo: {linha.id}")
-        sistema = DataLoader(json_path).load_system()
+        sistema = DataLoader(json_path, {"usar_deficit": config_base.get(
+            "usar_deficit", False)}).load_system()
         sistema.config.update(config_base)
 
         # Remove linha
@@ -290,7 +294,7 @@ def main():
     inicio_total = time.time()
     json_path = "data/dados_base.json"
     deltas = [round(0.01 * i, 2) for i in range(0, 101)]
-    # deltas = [1]
+    deltas = [1]
     config_base = {
         "solver_name": "glpk",
         # "solver_name": "highs",

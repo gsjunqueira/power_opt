@@ -40,18 +40,21 @@ class DataLoader:
     estruturado e construir um objeto System correspondente.
     """
 
-    def __init__(self, json_path: str):
+    def __init__(self, json_path: str, external_config: Optional[dict] = None):
         """
         Inicializa o carregador com o caminho para o arquivo JSON.
 
         Args:
             json_path (str): Caminho para o arquivo JSON estruturado.
+            external_config (dict, opcional): Dicionário com parâmetros de configuração
+            vindos do main.py.
         """
         self.path = Path(json_path)
         if not self.path.exists():
             raise FileNotFoundError(f"JSON file not found: {self.path}")
         self.system: Optional[System] = None
         self.has_hydro: bool = False
+        self.external_config = external_config or {}
 
     def load_system(self) -> System:
         """
@@ -65,10 +68,8 @@ class DataLoader:
 
         self.system = System()
         self.system.base_power = data.get("PB", 100.0)
-        self.system.config = data.get("config", {})
-
-        self.system.config["usar_deficit"] = self.system.config.get("usar_deficit", False)
-
+        config_json = data.get("config", {})
+        self.system.config = {**config_json, **self.external_config}
         self._carregar_barras(data)
         self._carregar_geradores(data)
         self._carregar_linhas(data)
