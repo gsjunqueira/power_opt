@@ -294,7 +294,7 @@ def main():
     inicio_total = time.time()
     json_path = "data/dados_base.json"
     deltas = [round(0.01 * i, 2) for i in range(0, 101)]
-    deltas = [1]
+    # deltas = [1]
     config_base = {
         "solver_name": "glpk",
         # "solver_name": "highs",

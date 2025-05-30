@@ -277,6 +277,7 @@ class PyomoSolver:
         """Aplica o balanço de potência em cada barra e período, considerando ou não perdas e fluxos."""
         model = self.model
         sistema = self.system
+        usar_deficit = self.system.config.get("usar_deficit", False)
 
         if self.considerar_fluxo:
             def balanco(model, b, t):
@@ -286,14 +287,19 @@ class PyomoSolver:
                 carga = model.demanda[b, t] if (b, t) in model.demanda else 0
                 entrada = sum(model.F[l, t] for l in model.L if model.destination[l] == b)
                 saida = sum(model.F[l, t] for l in model.L if model.origin[l] == b)
-                return geracao + entrada - saida == carga
+                deficit = model.Deficit[b, t] if usar_deficit and (b, t) in model.D else 0
+                return geracao + entrada - saida + deficit == carga
             model.balanco = Constraint(model.B, model.T, rule=balanco)
         else:
             def balanco_total(model, t):
                 """Balanço total do sistema: soma gerações = soma cargas"""
                 total_geracao = sum(model.P[g, t] for g in model.G)
                 total_carga = sum(model.demanda[b, t] for b in model.B)
-                return total_geracao - total_carga == 0
+                if usar_deficit:
+                    total_deficit = sum(model.Deficit[b, t] for b in model.B if (b, t) in model.D)
+                    return total_geracao + total_deficit == total_carga
+                if not usar_deficit:
+                    return total_geracao - total_carga == 0
 
             model.balanco = Constraint(model.T, rule=balanco_total)
 
@@ -599,10 +605,10 @@ class PyomoSolver:
             "considerar_rampa": self.considerar_rampa,
             "considerar_emissao": self.considerar_emissao,
         }
-
-        for l in model.L:
-            for t in list(model.T):
-                resultado[f"fluxo_{l}_{t}"] = value(model.F[l, t]) * base
+        if self.considerar_fluxo:
+            for l in model.L:
+                for t in list(model.T):
+                    resultado[f"fluxo_{l}_{t}"] = value(model.F[l, t]) * base
 
         for g in model.G:
             for t in list(model.T):
