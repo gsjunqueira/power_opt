@@ -304,14 +304,37 @@ class PyomoSolver:
             model.balanco = Constraint(model.T, rule=balanco_total)
 
     def _definir_objetivo(self):
-        """Define a função objetivo ponderada entre custo de geração e penalidade por emissão."""
+        """
+        Define a função objetivo ponderada entre custo de geração,
+        penalidade por emissão e custo de déficit (caso ativado).
+        """
         model = self.model
+        usar_deficit = self.system.config.get("usar_deficit", False)
 
         def f_obj(model):
-            """Minimiza a função objetivo ponderando custo e penalidade de emissão."""
-            custo_total = sum(model.P[g, t] * model.custo[g] for g in model.G if not g.startswith("GF") for t in model.T)
-            custo_deficit = sum(model.P[g, t] * model.custo[g] for g in model.G if g.startswith("GF") for t in model.T)
-            penal_emissao = sum(model.P[g, t] * model.emissao[g] for g in model.G for t in model.T)
+            """Minimiza a função objetivo ponderando custo, emissão e (opcional) déficit."""
+            # Custo apenas dos geradores reais (GT, GH, GW etc.)
+            custo_total = sum(
+                model.P[g, t] * model.custo[g]
+                for g in model.G if not g.startswith("GF")
+                for t in model.T
+            )
+            # Penalidade por emissão de CO2
+            penal_emissao = sum(
+                model.P[g, t] * model.emissao[g]
+                for g in model.G
+                for t in model.T
+            )
+            # Déficit explícito (quando ativado)
+            custo_deficit = sum(
+                model.Deficit[b, t] * model.cost_deficit[b, t]
+                for (b, t) in model.D
+            ) if usar_deficit else sum(
+                model.P[g, t] * model.custo[g]
+                for g in model.G if g.startswith("GF")
+                for t in model.T
+            )
+
             return model.delta * custo_total + (1 - model.delta) * model.custo_emissao * penal_emissao + custo_deficit
 
         model.objetivo = Objective(rule=f_obj, sense=minimize)

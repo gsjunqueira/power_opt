@@ -234,7 +234,7 @@ class DataLoader:
                     bus=bus,
                     period=t,
                     max_deficit=demanda_total,
-                    cost=10000.0
+                    cost=1e6
                 )
                 self.system.deficits.append(deficit)
             print(f"⚠️  Déficits não definidos no JSON — {len(self.system.deficits
