@@ -6,10 +6,12 @@ Autor: Giovani Santiago Junqueira
 """
 
 import os
+import time
 import pandas as pd
 import matplotlib.pyplot as plt
 from power_opt.utils import DataLoader
 from power_opt.solver import PyomoSolver
+from power_opt.utils import limpar_cache_py
 
 
 def executar_experimentos(json_path: str, deltas: list[float], config_base: dict) -> pd.DataFrame:
@@ -24,6 +26,7 @@ def executar_experimentos(json_path: str, deltas: list[float], config_base: dict
     Returns:
         pd.DataFrame: DataFrame contendo os resultados de todas as execuções.
     """
+    inicio = time.time()
     resultados = []
 
     for i, delta in enumerate(deltas):
@@ -57,7 +60,9 @@ def executar_experimentos(json_path: str, deltas: list[float], config_base: dict
         resultado["execucao"] = i
         resultados.append(resultado)
 
-    return pd.DataFrame(resultados)
+    fim = time.time()
+
+    return pd.DataFrame(resultados), (fim - inicio) / len(deltas)
 
 def simular_n_menos_1(json_path: str, config_base: dict) -> pd.DataFrame:
     """
@@ -282,19 +287,21 @@ def main():
     Função principal para configurar e executar os experimentos de otimização.
     Salva os resultados em um arquivo CSV.
     """
+    inicio_total = time.time()
     json_path = "data/dados_base.json"
     deltas = [round(0.01 * i, 2) for i in range(0, 101)]
     # deltas = [1]
     config_base = {
         "solver_name": "glpk",
         # "solver_name": "highs",
+        "usar_deficit": False,
         "considerar_fluxo": True,
         "considerar_perdas": True,
         "considerar_rampa": True,
         "considerar_emissao": True
     }
 
-    df_resultados = executar_experimentos(json_path, deltas, config_base)
+    df_resultados, tempo_com_perda = executar_experimentos(json_path, deltas, config_base)
     df_resultados.to_csv("results/resultados_otimizacao.csv", index=False)
     print("✅ Experimentos concluídos e resultados salvos em 'resultados_otimizacao.csv'")
 
@@ -309,19 +316,27 @@ def main():
     config_base = {
         "solver_name": "glpk",
         # "solver_name": "highs",
+        "usar_deficit": False,
         "considerar_fluxo": True,
         "considerar_perdas": False,
         "considerar_rampa": True,
         "considerar_emissao": True
     }
     # sem perdas
-    df_sem_perdas = executar_experimentos(json_path, deltas, config_base)
+    df_sem_perdas, tempo_sem_perda = executar_experimentos(json_path, deltas, config_base)
     df_sem_perdas.to_csv("results/resultados_sem_perdas.csv", index=False)
     print("✅ Experimentos concluídos e resultados salvos em 'resultados_perdas.csv'")
 
+
+    fim_total = time.time()
     plot_delta_vs_fob(df_resultados)
     plot_delta_vs_fob_comparacao(df_sem_perdas, df_resultados)
     plot_n_menos_1_viabilidade(df_n_menos_1)
 
+    print(f"⏱️ Tempo total das 207 simulações: {(fim_total - inicio_total):.2f} segundos")
+    print(f"⏱️ Tempo médio das simulações sem perda: {tempo_sem_perda:.2f} segundos")
+    print(f"⏱️ Tempo médio das simulações com perda: {tempo_com_perda:.2f} segundos")
+
 if __name__ == "__main__":
     main()
+    limpar_cache_py()

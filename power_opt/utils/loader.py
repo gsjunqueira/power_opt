@@ -67,12 +67,16 @@ class DataLoader:
         self.system.base_power = data.get("PB", 100.0)
         self.system.config = data.get("config", {})
 
+        self.system.config["usar_deficit"] = self.system.config.get("usar_deficit", False)
+
         self._carregar_barras(data)
         self._carregar_geradores(data)
         self._carregar_linhas(data)
         self._carregar_cargas(data)
-        self._adicionar_geradores_ficticios()
-        # self._carregar_deficits(data)
+        if self.system.config.get("usar_deficit", False):
+            self._carregar_deficits(data)
+        else:
+            self._adicionar_geradores_ficticios()
         self._carregar_cascata(data)
         self.system.update_line_dict()
         self._garantir_carga_minima()

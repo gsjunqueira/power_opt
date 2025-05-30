@@ -7,6 +7,7 @@ Autor: Giovani Santiago Junqueira
 """
 
 from .loader import DataLoader
+from .clean import limpar_cache_py
 
 
-__all__ = ["DataLoader"]
+__all__ = ["DataLoader", "limpar_cache_py"]
