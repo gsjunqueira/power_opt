@@ -198,7 +198,8 @@ class DataLoader:
 
     def _carregar_deficits(self, data):
         """
-        Carrega os déficits a partir do JSON (se presentes) ou os gera automaticamente com base na carga.
+        Carrega os déficits a partir do JSON (se presentes) ou os gera
+        automaticamente com base na carga.
 
         Args:
             data (dict): Dados extraídos do JSON.
@@ -231,7 +232,8 @@ class DataLoader:
                     cost=10000.0
                 )
                 self.system.deficits.append(deficit)
-            print(f"⚠️  Déficits não definidos no JSON — {len(self.system.deficits)} gerados automaticamente com custo fixo.")
+            print(f"⚠️  Déficits não definidos no JSON — {len(self.system.deficits
+                  )} gerados automaticamente com custo fixo.")
 
     def _carregar_cascata(self, data):
         """

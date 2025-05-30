@@ -747,5 +747,3 @@ class PyomoSolver:
                     })
 
         return pd.DataFrame(dados)
-
-

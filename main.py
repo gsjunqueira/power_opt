@@ -106,7 +106,8 @@ def simular_n_menos_1(json_path: str, config_base: dict) -> pd.DataFrame:
         modelo.solve(solver_name=solver_nome, tee=False)
         if solver_nome == "glpk":
             df_duais = modelo.get_duais()
-            salvar_duais(df_duais, momento="n_menos_1", cenario=f"sem_{gerador.id}", config_base=config_base)
+            salvar_duais(df_duais, momento="n_menos_1", cenario=f"sem_{gerador.id}",
+                         config_base=config_base)
         resultado = modelo.get_result()
         resultado["cenario"] = f"sem_{gerador.id}"
         resultados.append(resultado)
@@ -133,7 +134,8 @@ def simular_n_menos_1(json_path: str, config_base: dict) -> pd.DataFrame:
         modelo.solve(solver_name=solver_nome, tee=False)
         if solver_nome == "glpk":
             df_duais = modelo.get_duais()
-            salvar_duais(df_duais, momento="n_menos_1", cenario=f"sem_{linha.id}", config_base=config_base)
+            salvar_duais(df_duais, momento="n_menos_1", cenario=f"sem_{linha.id}",
+                         config_base=config_base)
         resultado = modelo.get_result()
         resultado["cenario"] = f"sem_{linha.id}"
         resultados.append(resultado)
