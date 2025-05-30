@@ -5,6 +5,7 @@ Executa o modelo para diferentes valores de delta e configurações, armazena e 
 Autor: Giovani Santiago Junqueira
 """
 
+import os
 import pandas as pd
 import matplotlib.pyplot as plt
 from power_opt.utils import DataLoader
@@ -45,7 +46,11 @@ def executar_experimentos(json_path: str, deltas: list[float], config_base: dict
         modelo.debug_csv_path = "results/debug_perdas.csv"
         modelo.construir()
         # modelo.model.pprint()
-        modelo.solve(solver_name="highs", tee=False)
+        solver_nome = config_base.get("solver_name", "highs").lower()
+        modelo.solve(solver_name=solver_nome, tee=False)
+        if solver_nome == "glpk":
+            df_duais = modelo.get_duais()
+            salvar_duais(df_duais, momento="experimentos", execucao=i, config_base=config_base)
 
         # Capturar resultados
         resultado = modelo.get_result()
@@ -97,7 +102,11 @@ def simular_n_menos_1(json_path: str, config_base: dict) -> pd.DataFrame:
         )
         modelo.modo_debug = False
         modelo.construir()
-        modelo.solve(solver_name="highs", tee=False)
+        solver_nome = config_base.get("solver_name", "highs").lower()
+        modelo.solve(solver_name=solver_nome, tee=False)
+        if solver_nome == "glpk":
+            df_duais = modelo.get_duais()
+            salvar_duais(df_duais, momento="n_menos_1", cenario=f"sem_{gerador.id}", config_base=config_base)
         resultado = modelo.get_result()
         resultado["cenario"] = f"sem_{gerador.id}"
         resultados.append(resultado)
@@ -121,7 +130,10 @@ def simular_n_menos_1(json_path: str, config_base: dict) -> pd.DataFrame:
         )
 
         modelo.construir()
-        modelo.solve(solver_name="highs", tee=False)
+        modelo.solve(solver_name=solver_nome, tee=False)
+        if solver_nome == "glpk":
+            df_duais = modelo.get_duais()
+            salvar_duais(df_duais, momento="n_menos_1", cenario=f"sem_{linha.id}", config_base=config_base)
         resultado = modelo.get_result()
         resultado["cenario"] = f"sem_{linha.id}"
         resultados.append(resultado)
@@ -220,6 +232,49 @@ def plot_n_menos_1_viabilidade(df_n_menos_1: pd.DataFrame):
 
     plt.show()
 
+def salvar_duais(df_duais: pd.DataFrame, momento: str,
+                 execucao: int | None = None, cenario: str | None = None,
+                 config_base: dict | None = None):
+    """
+    Salva variáveis duais significativamente diferentes de zero em um único CSV,
+    com metadados claros sobre o momento da simulação e configuração utilizada.
+
+    Args:
+        df_duais (pd.DataFrame): DataFrame contendo os multiplicadores de Lagrange.
+        momento (str): Identificador do estágio da simulação ("experimentos", "n_menos_1" etc.).
+        execucao (int, optional): Índice da execução, se aplicável.
+        cenario (str, optional): Identificador do cenário, se aplicável.
+        config_base (dict, optional): Dicionário com as flags de configuração usadas.
+    """
+    # Filtra apenas as duais ativas (diferentes de zero)
+    df_filtrado = df_duais[df_duais["dual"] != 0.0].copy()
+    if df_filtrado.empty:
+        return  # Nada a salvar
+
+    # Adiciona informações de contexto
+    df_filtrado["momento"] = momento
+    if execucao is not None:
+        df_filtrado["execucao"] = execucao
+    if cenario is not None:
+        df_filtrado["cenario"] = cenario
+
+    # Adiciona descrição legível das configurações
+    if config_base:
+        config_str = "_".join([
+            f"fluxo={config_base.get('considerar_fluxo', False)}",
+            f"perdas={config_base.get('considerar_perdas', False)}",
+            f"emissao={config_base.get('considerar_emissao', False)}",
+            f"rampa={config_base.get('considerar_rampa', False)}"
+        ])
+        df_filtrado["config_str"] = config_str
+    else:
+        df_filtrado["config_str"] = "indefinido"
+
+    # Salva no CSV
+    path = "results/duais_acumulado.csv"
+    header = not os.path.exists(path)
+    df_filtrado.to_csv(path, mode="a", header=header, index=False)
+
 def main():
     """
     Função principal para configurar e executar os experimentos de otimização.
@@ -229,6 +284,8 @@ def main():
     deltas = [round(0.01 * i, 2) for i in range(0, 101)]
     # deltas = [1]
     config_base = {
+        "solver_name": "glpk",
+        # "solver_name": "highs",
         "considerar_fluxo": True,
         "considerar_perdas": True,
         "considerar_rampa": True,
@@ -248,6 +305,8 @@ def main():
     deltas = [round(0.01 * i, 2) for i in range(0, 101)]
     # deltas = [1]
     config_base = {
+        "solver_name": "glpk",
+        # "solver_name": "highs",
         "considerar_fluxo": True,
         "considerar_perdas": False,
         "considerar_rampa": True,

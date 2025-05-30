@@ -14,10 +14,13 @@ Autor: Giovani Santiago Junqueira
 
 # pylint: disable=line-too-long, too-many-arguments, too-many-instance-attributes, too-many-locals, too-many-positional-arguments, invalid-name
 
+import os
 import csv
+import pandas as pd
+# from pyomo.core import Suffix
 from pyomo.environ import (
     inequality, ConcreteModel, Var, Objective, Constraint, SolverFactory,
-    NonNegativeReals, Reals, minimize, value, Set, Param, RangeSet, Any
+    NonNegativeReals, Reals, minimize, value, Set, Param, RangeSet, Any, Suffix
 )
 
 
@@ -30,7 +33,7 @@ class PyomoSolver:
     """
 
     def __init__(self, system, considerar_fluxo=True, considerar_perdas=True,
-                 considerar_emissao=True, considerar_rampa=True):
+                 considerar_emissao=True, considerar_rampa=True, solver_name: str = "highs"):
         """
         Inicializa a classe com as configurações escolhidas.
 
@@ -45,8 +48,9 @@ class PyomoSolver:
         self.model = ConcreteModel()
         self.resultado = None
 
-        self.modo_debug = False  # Ativa logs detalhados para depuração
-        self.debug_csv_path = None # Caminho do arquivo CSV de debug (se desejado)
+        self.modo_debug = False
+        self.solver_name = solver_name.lower()
+        self.debug_csv_path = None
         self.iteracao_atual = 0
         self.considerar_fluxo = considerar_fluxo
         self.considerar_perdas = considerar_perdas if considerar_fluxo else False
@@ -83,6 +87,11 @@ class PyomoSolver:
         self._definir_restricoes_barras()
         self._definir_objetivo()
 
+        if self.solver_name == "glpk":
+            if hasattr(self.model, "dual"):
+                self.model.del_component("dual")
+            self.model.dual = Suffix(direction=Suffix.IMPORT)
+
     def _definir_indices(self):
         """Define os conjuntos principais: geradores, barras, tempos e linhas (se habilitado)."""
         model = self.model
@@ -95,10 +104,6 @@ class PyomoSolver:
     def _definir_variaveis_geracao(self):
         """Cria variável de geração para cada gerador e período."""
         self.model.P = Var(self.model.G, self.model.T, within=NonNegativeReals)
-
-    # def _definir_variaveis_fluxo(self):
-    #     """Cria variável de fluxo de potência entre barras para cada período."""
-    #     self.model.F = Var(self.model.L, self.model.T, domain=Reals)
 
     def _definir_variaveis_fluxo(self):
         """Cria variável de fluxo de potência entre barras para cada período."""
@@ -274,6 +279,9 @@ class PyomoSolver:
         max_iter, epsilon = 40, 1e-16
         iteracao, convergiu = 0, False
 
+        if not hasattr(self, "solver_name") or not self.solver_name:
+            self.solver_name = "glpk"
+
         carga_base = self._armazenar_carga_base()
         perdas_anterior = self._inicializar_perdas()
 
@@ -290,6 +298,10 @@ class PyomoSolver:
             else:
                 perdas_anterior = perdas_atual.copy()
                 self.model = ConcreteModel()
+                if self.solver_name == "glpk":
+                    if hasattr(self.model, "dual"):
+                        self.model.del_component("dual")
+                    self.model.dual = Suffix(direction=Suffix.IMPORT)
                 self.construir()
             iteracao += 1
             self.iteracao_atual += 1
@@ -300,6 +312,10 @@ class PyomoSolver:
         self.considerar_perdas = False
         self.perdas_computadas = True
         self.model = ConcreteModel()
+        if self.solver_name == "glpk":
+            if hasattr(self.model, "dual"):
+                self.model.del_component("dual")
+            self.model.dual = Suffix(direction=Suffix.IMPORT)
         self.construir()
         self._resolver_modelo(solver_name, tee)
         self._resolvendo_perdas = False
@@ -419,12 +435,26 @@ class PyomoSolver:
     def solve(self, solver_name="highs", tee=False):
         """Resolve o modelo usando o solver especificado."""
 
+        self.solver_name = solver_name
+
         # Prevenção de recursão ao aplicar perdas
         if getattr(self, "_resolvendo_perdas", False):
             return
 
-        solver = SolverFactory(solver_name)
+        if solver_name == "glpk" and not hasattr(self.model, "dual"):
+            self.model.dual = Suffix(direction=Suffix.IMPORT)
+
+
+        if solver_name == 'glpk':
+            os.environ["PATH"] = "/opt/homebrew/bin:" + os.environ["PATH"]
+            solver = SolverFactory(solver_name, executable="/opt/homebrew/bin/glpsol")
+        else:
+            solver = SolverFactory(solver_name)
+
         self.resultado = solver.solve(self.model, tee=tee)
+
+        if solver_name == "glpk":
+            self.extrair_duais_glpk()
 
         # Se for para considerar perdas, ajustar demanda e reconstruir o modelo
         if self.considerar_perdas:
@@ -438,6 +468,7 @@ class PyomoSolver:
         self._debug_geracao()
         self._debug_objetivo()
         self._debug_balanco_barras()
+
 
     def mostrar_resultados(self):
         """Imprime o resultado da otimização."""
@@ -619,3 +650,102 @@ class PyomoSolver:
                 saida = sum(value(model.F[l, t]) for l in model.L if value(model.origin[l]) == b) if self.considerar_fluxo else 0.0
                 delta = geracao + entrada - saida - carga
                 print(f"  Barra {b} [t={t}] → Geração = {geracao:.4f}, Carga = {carga:.4f}, Entrada = {entrada:.4f}, Saída = {saida:.4f}, Δ = {delta:+.6f}")
+
+    def extrair_duais_glpk(self):
+        """
+        Extrai e imprime os valores duais (multiplicadores de Lagrange) de todas as restrições
+        do modelo, desde que o solver utilizado tenha sido o GLPK.
+
+        Requer que o modelo tenha sido resolvido com:
+            self.model.dual = Suffix(direction=Suffix.IMPORT)
+        """
+        if not hasattr(self.model, "dual"):
+            print("❌ Atributo 'dual' não encontrado. Certifique-se de que o solver GLPK foi utilizado.")
+            return
+
+        print("\n🔎 DUALS (Multiplicadores de Lagrange):")
+        for constr in self.model.component_objects(Constraint, active=True):
+            for index in constr:
+                dual_val = self.model.dual.get(constr[index], None)
+                print(f"{constr.name}[{index}] = {dual_val}")
+
+
+    def exportar_duais_csv(self, caminho_csv: str):
+        """
+        Exporta os multiplicadores de Lagrange (variáveis duais) das restrições do modelo
+        para um arquivo CSV. Apenas funciona se o solver GLPK foi utilizado.
+
+        Args:
+            caminho_csv (str): Caminho completo do arquivo CSV de saída.
+        """
+        if not hasattr(self.model, "dual"):
+            raise RuntimeError("⚠️ Multiplicadores de Lagrange não foram carregados (modelo.dual inexistente).")
+
+        with open(caminho_csv, "w", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            writer.writerow(["restricao", "indice", "valor_dual"])
+
+            for nome, componente in self.model.component_map(Constraint, active=True).items():
+                for indice in componente:
+                    restricao = componente[indice]
+                    if restricao.active:
+                        dual = self.model.dual.get(restricao, 0.0)
+                        writer.writerow([nome, indice, dual])
+
+    def exportar_duais_csv_acumulado(self, caminho_csv: str, id_caso: str):
+        """
+        Exporta os multiplicadores de Lagrange das restrições para um CSV acumulado, 
+        incluindo o identificador do caso.
+
+        Se o arquivo não existir, cria e escreve o cabeçalho.
+        Se já existir, apenas acrescenta as linhas.
+
+        Args:
+            caminho_csv (str): Caminho do arquivo CSV (será criado se não existir).
+            id_caso (str): Identificador único para o caso (ex: nome do arquivo, número da simulação).
+        """
+
+        if not hasattr(self.model, "dual"):
+            raise RuntimeError("⚠️ Multiplicadores de Lagrange não foram carregados (modelo.dual inexistente).")
+
+        escrever_cabecalho = not os.path.exists(caminho_csv)
+
+        with open(caminho_csv, "a", newline="", encoding="utf-8") as f:
+            writer = csv.writer(f)
+            if escrever_cabecalho:
+                writer.writerow(["caso", "restricao", "indice", "valor_dual"])
+
+            for nome, componente in self.model.component_map(Constraint, active=True).items():
+                for indice in componente:
+                    restricao = componente[indice]
+                    if restricao.active:
+                        dual = self.model.dual.get(restricao, 0.0)
+                        writer.writerow([id_caso, nome, indice, dual])
+
+    def get_duais(self) -> pd.DataFrame:
+        """
+        Retorna os multiplicadores de Lagrange das restrições, caso o solver seja GLPK.
+
+        Returns:
+            pd.DataFrame: DataFrame contendo nome da restrição, índice e valor dual.
+        """
+
+        if not hasattr(self.model, "dual"):
+            raise RuntimeError("As variáveis duais não estão disponíveis. "
+                            "Certifique-se de usar o solver GLPK e ter adicionado 'Suffix' com direction=IMPORT.")
+
+        dados = []
+        for constr in self.model.component_objects(Constraint, active=True):
+            nome = constr.name
+            for idx in constr:
+                dual = self.model.dual.get(constr[idx], None)
+                if dual is not None:
+                    dados.append({
+                        "restricao": nome,
+                        "indice": idx if isinstance(idx, tuple) else (idx,),
+                        "dual": dual
+                    })
+
+        return pd.DataFrame(dados)
+
+
