@@ -637,6 +637,11 @@ class PyomoSolver:
             for t in list(model.T):
                 resultado[f"ger_{g}_{t}"] = value(model.P[g, t]) * base
 
+        if hasattr(model, "Deficit"):
+            for b, t in model.D:
+                chave = f"deficit_{b}_{t}"
+                resultado[chave] = value(model.Deficit[b, t]) * base
+
         return resultado
 
     def _debug_perda_linha(self, linha_id, t, f, B, theta, G, perda, iteracao=None):
