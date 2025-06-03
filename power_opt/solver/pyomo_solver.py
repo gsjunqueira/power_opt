@@ -24,6 +24,7 @@ __author__ = "Giovani Santiago Junqueira"
 
 # pylint: disable=invalid-name, line-too-long
 
+import os
 from pyomo.environ import ConcreteModel
 from pyomo.opt import SolverFactory
 
@@ -94,7 +95,12 @@ class PyomoSolver:
         if self.config_flags.get("considerar_perdas", False):
             self.aplicar_perdas_iterativamente(solver_name=solver_name, tee=tee)
         else:
-            solver = SolverFactory(solver_name)
+            if solver_name == 'glpk':
+                os.environ["PATH"] = "/opt/homebrew/bin:" + os.environ["PATH"]
+                solver = SolverFactory(solver_name, executable="/opt/homebrew/bin/glpsol")
+            else:
+                solver = SolverFactory(solver_name)
+
             solver.solve(self.model, tee=tee)
 
     def get_results(self) -> dict:
@@ -184,7 +190,11 @@ class PyomoSolver:
 
         while not convergiu and iteracao < max_iter:
             # Resolve o modelo com configuração atual
-            solver = SolverFactory(solver_name)
+            if solver_name == 'glpk':
+                os.environ["PATH"] = "/opt/homebrew/bin:" + os.environ["PATH"]
+                solver = SolverFactory(solver_name, executable="/opt/homebrew/bin/glpsol")
+            else:
+                solver = SolverFactory(solver_name)
             solver.solve(self.model, tee=tee)
 
             # Calcula perdas e redistribui como carga
@@ -212,7 +222,11 @@ class PyomoSolver:
         self.model = ConcreteModel()
         self.model_built = False
         self.build(**self.config_flags)
-        solver = SolverFactory(solver_name)
+        if solver_name == 'glpk':
+            os.environ["PATH"] = "/opt/homebrew/bin:" + os.environ["PATH"]
+            solver = SolverFactory(solver_name, executable="/opt/homebrew/bin/glpsol")
+        else:
+            solver = SolverFactory(solver_name)
         solver.solve(self.model, tee=tee)
 
         self._resolvendo_perdas = False

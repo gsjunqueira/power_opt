@@ -14,9 +14,9 @@ from power_opt.solver.handler import (
     salvar_resultados_em_csv,
     exportar_duais_csv_acumulado,
     extrair_duais_em_dataframe,
-    plot_delta_vs_fob,
-    plot_delta_vs_fob_comparacao,
-    # plot_n_menos_1_viabilidade
+    # plot_delta_vs_fob,
+    # plot_delta_vs_fob_comparacao,
+    # # plot_n_menos_1_viabilidade
 )
 
 def split_config(config):
@@ -82,14 +82,13 @@ def executar_experimentos(json_path: str, deltas: list[float], config_base: dict
         # Criar solver
         modelo = PyomoSolver(system)
         config_modelo, config_solver = split_config(config_base)
-        solver_nome = config_solver.get("solver_name", "highs").lower()
         modelo.build(**config_modelo)
         modelo.solve(**config_solver)
 
-        # Capturar duais se GLPK
-        if solver_nome == "glpk":
-            df_duais = extrair_duais_em_dataframe(modelo)
-            exportar_duais_csv_acumulado(df_duais, caminho_csv="results/duais.csv", id_caso=i)
+        # # Capturar duais se GLPK
+        # if solver_nome == "glpk":
+        #     df_duais = extrair_duais_em_dataframe(modelo)
+        #     exportar_duais_csv_acumulado(df_duais, caminho_csv="results/duais.csv", id_caso=i)
 
         # Capturar resultados
         resultado = extrair_resultados(modelo, system=system)
@@ -109,7 +108,7 @@ def main():
     deltas = [round(0.01 * i, 2) for i in range(0, 101)]
     # deltas = [1]
     config_base_com_perda = {
-        "solver_name": "highs",
+        "solver_name": "glpk", # "glpk", # "highs",
         "usar_deficit": True,
         "considerar_fluxo": True,
         "considerar_perdas": True,
