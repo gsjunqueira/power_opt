@@ -1,19 +1,14 @@
 """
-Módulo que define a classe Sistema para consolidar os componentes elétricos
-e organizar os dados necessários à resolução do fluxo de potência ou despacho otimizado.
+Módulo `system`
 
-A classe Sistema encapsula a topologia e os dados elétricos do sistema, incluindo:
-- Lista de barras, linhas, transformadores e geradores
-- Perfil de carga por período
-- Cascata de usinas hidrelétricas (se aplicável)
-- Parâmetros de base (potência base) e configuração
-- Perdas estimadas por barra e período (inicialmente zero)
-
-Essa abordagem promove modularidade, clareza e facilidade de extensão,
-facilitando o uso em modelos lineares iterativos ou simulações.
+Contém a classe `System`, que encapsula a topologia do sistema elétrico,
+incluindo suas barras, linhas, geradores e cargas. Também oferece métodos auxiliares
+para acessar e organizar os elementos do sistema.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 # pylint: disable=line-too-long
 

@@ -1,8 +1,14 @@
 """
-Thermal generator with cost, emission, and ramp constraints.
+Módulo `thermal_generator`
+
+Define a classe `ThermalGenerator`, derivada de `BaseGenerator`, para representar usinas
+termoelétricas. Essa modelagem pode incorporar custos variáveis, emissões de CO₂,
+restrições de rampa e despacho contínuo ao longo do tempo.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 # pylint: disable=too-few-public-methods, too-many-arguments, too-many-positional-arguments
 

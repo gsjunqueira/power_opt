@@ -1,8 +1,14 @@
 """
-Defines a wind generator with a power curve.
+Módulo `fictitious_generator`
+
+Define a classe `FictitiousGenerator`, que representa um gerador fictício utilizado para
+balancear o sistema em situações de déficit de geração. Estes geradores são adicionados
+automaticamente às barras com carga e permitem viabilizar soluções inviáveis.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 # pylint: disable=too-few-public-methods, too-many-arguments, too-many-positional-arguments
 

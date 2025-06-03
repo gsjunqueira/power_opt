@@ -1,11 +1,19 @@
 """
-Initialization module for the models package.
+Pacote `solver`
 
-This package defines the core data structures representing the power system components:
-Bus, Load, Generator, Line, and System.
+Este pacote fornece solucionadores para o problema de despacho ótimo de energia elétrica,
+permitindo a simulação de diferentes abordagens matemáticas.
+
+Abordagens disponíveis:
+- PyomoSolver: baseia-se na biblioteca Pyomo para modelagem e resolução.
+
+Cada solucionador implementa uma interface consistente para montagem, execução e análise
+de modelos de otimização.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 from .bus import Bus
 from .load import Load

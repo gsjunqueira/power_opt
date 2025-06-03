@@ -1,10 +1,16 @@
 """
-Defines the Bus class that represents a node in the power system.
+Módulo `bus`
 
-Each bus may be connected to one or more generators and loads.
+Define a classe `Bus`, que representa uma barra elétrica no sistema de potência.
+Cada barra pode estar conectada a múltiplos geradores e cargas.
+
+Esta entidade é central na modelagem de fluxos de energia, balanço de potência
+e representação da topologia do sistema.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 from typing import List
 from .load import Load

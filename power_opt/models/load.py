@@ -1,8 +1,13 @@
 """
-Module that defines the Load class, representing the active power demand at a bus.
+Módulo `load`
 
-Autor Giovani Santiago Junqueira
+Define a classe `Load`, que representa uma carga elétrica conectada a uma barra. Permite
+a modelagem de diferentes níveis de demanda ao longo do horizonte de simulação.
+
+Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 # pylint: disable=too-few-public-methods
 

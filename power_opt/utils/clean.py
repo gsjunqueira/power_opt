@@ -1,13 +1,15 @@
 """
-Script clean.py
+Módulo `clean`
 
-Remove todos os arquivos .pyc, .pyo e pastas __pycache__ do projeto.
-Útil para evitar erros de importação causados por módulos antigos em cache.
+Script principal para realizar a limpeza dos diretórios `results/` e subpastas relacionadas,
+removendo arquivos intermediários de execuções anteriores (CSV, PNG, logs etc.).
 
-Execução segura: pode rodar com o botão ▶️ no VS Code.
+Pode ser executado diretamente para reiniciar o ambiente de resultados.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 import os
 import shutil

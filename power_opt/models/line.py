@@ -1,11 +1,14 @@
 """
-Module that defines the Line class, representing a transmission line in the power system.
+Módulo `line`
 
-Each line connects two buses and includes electrical parameters such as
-susceptance and conductance, as well as thermal flow limits.
+Define a classe `Line`, que representa uma linha de transmissão entre duas barras no
+sistema elétrico. Contém atributos elétricos como condutância, susceptância e capacidade
+máxima de transporte, essenciais para o cálculo de perdas e fluxo de potência.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 # pylint: disable=too-few-public-methods, too-many-arguments, too-many-positional-arguments
 

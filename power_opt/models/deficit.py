@@ -1,8 +1,16 @@
 """
-Deficit model representing curtailed load (corte de carga) with penalized cost.
+Módulo `deficit`
+
+Responsável por adicionar a variável de corte de carga (déficit) ao modelo de otimização,
+bem como suas respectivas restrições e penalidades no custo total.
+
+Essa modelagem permite capturar a insuficiência de geração em cenários onde a demanda
+não pode ser totalmente atendida.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 from dataclasses import dataclass
 

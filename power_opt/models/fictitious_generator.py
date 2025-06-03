@@ -1,8 +1,8 @@
 """
 Defines a special generator for balancing system mismatches.
-
-Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 # pylint: disable=too-few-public-methods
 

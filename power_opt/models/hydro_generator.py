@@ -1,8 +1,14 @@
 """
-Defines a hydroelectric generator with reservoir and flow attributes.
+Módulo `hydro_generator`
+
+Implementa a classe `HydroGenerator`, uma especialização de `BaseGenerator` voltada para
+geradores hidrelétricos. Permite a futura integração de restrições de volume, afluência,
+rampa hidráulica e produção de energia associada.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 # pylint: disable=too-few-public-methods, too-many-arguments, too-many-positional-arguments
 

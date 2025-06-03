@@ -1,13 +1,14 @@
 """
-base_generator.py
+Módulo `base_generator`
 
-Define a classe abstrata BaseGenerator, que serve como interface comum para
-diferentes tipos de geradores em um sistema elétrico de potência. Essa classe
-pode ser estendida para modelar geradores térmicos, hidráulicos, eólicos,
-fictícios ou outros.
+Define a classe abstrata `BaseGenerator`, que serve como interface comum para
+diferentes tipos de geradores em sistemas elétricos de potência. Essa base pode ser
+extendida para modelar geradores térmicos, hidráulicos, eólicos, fictícios, entre outros.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 from abc import ABC, abstractmethod
 from typing import Optional

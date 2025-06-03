@@ -1,16 +1,24 @@
 """
 Pacote `power_opt`
 
-Este pacote contém os módulos principais para otimização de despacho de sistemas elétricos,
-incluindo modelos matemáticos, solucionadores e utilitários auxiliares.
+Este é o pacote principal do projeto de despacho ótimo de energia elétrica.
 
-Estrutura:
-- models/: Definição das entidades do sistema (barras, geradores, linhas etc.)
-- solver/: Implementação dos algoritmos de otimização (Pyomo, Scipy, etc.)
-- utils/: Funções auxiliares para leitura, exportação e análise dos resultados
+Agrupa todos os módulos e subpacotes necessários para:
+- Definição dos modelos de otimização
+- Implementação dos solucionadores com diferentes abordagens (Pyomo, Scipy)
+- Manipulação de dados de entrada e saída
+- Geração de gráficos e relatórios
+- Análises de viabilidade, perdas e déficit
+
+Subpacotes:
+- `models`: definição dos elementos do sistema elétrico
+- `solver`: solucionadores e lógica de otimização
+- `utils`: utilitários para conversão, carregamento e limpeza de dados
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 # Importações iniciais para facilitar acesso de alto nível
 from . import models

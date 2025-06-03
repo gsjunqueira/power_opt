@@ -1,12 +1,15 @@
 """
-DataLoader module to construct a System object from a structured JSON file.
+Módulo `loader`
 
-Supports multiple generator types (thermal, hydro, wind), time-dependent loads,
-transmission losses, and optional cascade topology. Generator IDs are automatically
-prefixed by type for identification (e.g., GT, GH, GW, GF).
+Responsável pela leitura e carregamento de dados do sistema a partir de arquivos `.json`.
+Fornece funções que constroem a representação do sistema elétrico a ser otimizado,
+incluindo barras, cargas,
+geradores, linhas, e transformadores.
 
 Autor: Giovani Santiago Junqueira
 """
+
+__author__ = "Giovani Santiago Junqueira"
 
 import json
 import re
