@@ -1,95 +1,72 @@
-# Otimizador de Despacho com e sem Perdas em Sistemas de Potência
 
-Este projeto realiza a otimização do despacho de carga de um sistema elétrico, considerando ou não as perdas de transmissão, penalização por emissão de carbono e restrições operativas como limites de geração, rampa e capacidade de linhas. O modelo é implementado em Python com o uso do Pyomo (para formulação do modelo) e do solver HiGHS.
+# Power Optimization Models
 
-## Objetivos
-
-- Resolver o problema de despacho de carga com ou sem consideração de perdas
-- Avaliar a influência de um fator de penalidade `delta` associado à emissão de CO₂
-- Simular condições de contingência (análise N-1)
-- Gerar gráficos comparativos de desempenho (FOB vs Delta, FOB por cenário)
-
-## Estrutura do Projeto
-
-```text
-projeto/
-├── main.py                      # Script principal de execução
-├── data/                   # Pasta com o arquivo de entrada de dados
-│   ├── dados_base.json            # Dados do sistema (barras, geradores, linhas, cargas)
-├── utils/                   # Pasta com o leitor dos dados de entrada
-│   ├── loader.py                   # Leitura e estruturação dos dados
-├── solver/                   # Pasta com o modelo de otimização
-│   ├── modelo_pyomo.py            # Implementação do modelo de otimização (Pyomo)
-├── models/                   # Pasta com os modelos de elementos do sistema
-│   ├── base_generator.py
-│   ├── bus.py
-│   ├── fictitious_generator.py
-│   ├── hydro_generator.py
-│   ├── line.py
-│   ├── load.py
-│   └── __init__.py
-├── results/
-│   ├── resultados_otimizacao.csv  # Resultados gerais com perdas
-│   ├── resultados_otimizacao_sem_perdas.csv # Resultados gerais sem perdas
-│   ├── resultados_n_menos_1.csv   # Resultados dos cenários N-1
-│   ├── comparacao_delta_vs_fob.png        # Gráfico: FOB com vs sem perdas
-│   ├── resultados_delta_vs_fob.png        # Gráfico: FOB com perdas
-│   ├── resultados_n_menos_1.png           # Gráfico: FOB por cenário N-1
-```
-
-## Requisitos
-
-- Python 3.12+
-- [Pyomo](http://www.pyomo.org/)
-- [HiGHS solver](https://www.highs.dev/)
-- pandas, matplotlib, numpy
-
-Instalação recomendada com `poetry`:
-
-```bash
-poetry install
-```
-
-## Como Executar
-
-1. Certifique-se de que o ambiente está ativado:
-
-   ```bash
-   poetry shell
-   ```
-
-2. Execute o script principal:
-
-   ```bash
-   python main.py
-   ```
-
-## Exemplos de Saída
-
-### Gráfico FOB vs Delta com e sem Perda
-
-![FOB comparado](comparacao_delta_vs_fob.png)
-
-### Gráfico FOB vs Delta (Com Perda)
-
-![FOB com perda](resultados_delta_vs_fob.png)
-
-### FOB por Cenário de Contingência (Análise N-1)
-
-![FOB N-1](resultados_n_menos_1.png)
-
-## Contribuições
-
-Este projeto faz parte de um estudo acadêmico e pode ser expandido para incluir:
-
-- Modelagem hidroelétrica
-- Otimização multiobjetivo
-- Modelos estocásticos ou cenarizados
-
-## Licença
-
-Este projeto é de uso acadêmico e pode ser adaptado sob permissão expressa do autor.
+Este repositório contém dois projetos distintos para otimização de despacho de geração elétrica:
 
 ---
 
-> Desenvolvido por Giovani Santiago Junqueira, Gabriel Halfeld Limp de Carvalho e Iuri Cristian Tanin Oliveira | 2025
+## ⚙️ Projeto 1: Modelo Original (Arquivo Único)
+
+Este projeto implementa um modelo de despacho de geração elétrica utilizando o Pyomo em um único arquivo principal (`modelo_pyomo.py`). Ele suporta diferentes configurações do sistema elétrico com base em *flags*, incluindo:
+
+- Fluxo de potência linearizado (modelo DC)
+- Perdas elétricas por linha
+- Restrições de rampa para geradores térmicos
+- Penalidades por emissão de CO₂
+- Corte de carga modelado via geradores fictícios
+
+### Execução
+```bash
+python main_1.py
+```
+
+---
+
+## 🧩 Projeto 2: Modelo Refatorado (Modular)
+
+Este projeto representa uma versão refatorada e modularizada do modelo anterior. O código foi reestruturado em múltiplos arquivos e pacotes para facilitar manutenção, testes e expansibilidade futura.
+
+### Estrutura do Projeto
+- `power_opt/models/`: definição de componentes do sistema (geradores, linhas, barras etc.) — **compartilhado**
+- `power_opt/utils/`: utilitários auxiliares como carregamento e limpeza de dados — **compartilhado**
+- `power_opt/solver/`:
+  - `model_builder.py`: construção do modelo Pyomo
+  - `pyomo_solver.py`: orquestrador principal
+  - `handler/`: exportação de resultados, depuração e manipulação de configurações
+  - `flags/`: lógica condicional para ativação de funcionalidades (fluxo, perdas, emissão, rampa, déficit)
+
+### Execução
+```bash
+python main.py
+```
+
+---
+
+## 📁 Dados e Resultados
+
+- Dados de entrada: `data/`
+- Resultados de simulações: `results/`, incluindo:
+  - Tabelas CSV consolidadas por tipo de variável
+  - Gráficos (geração, perdas, fluxos, déficit)
+  - Arquivos de log e depuração detalhada por iteração
+
+---
+
+## 📌 Observações
+
+- Ambos os projetos utilizam o solver **HiGHS** ou **GLPK** via Pyomo.
+- Para reproduzir os experimentos com diferentes valores de `delta`, consulte os scripts `main_1.py` (original) e `main.py` (refatorado).
+- O Projeto 2 substitui os geradores fictícios por variáveis explícitas de déficit e permite rastreamento modular de perdas, rampas e emissões.
+
+---
+
+## 👨‍💻 Autores
+
+***Giovani Santiago Junqueira***
+Mestrando em Engenharia de Sistemas Elétricos  
+
+***Gabriel Halfeld Limp de Carvalho***
+Mestrando em Engenharia de Sistemas Elétricos  
+
+***Iuri Cristian Tanin Oliveira***
+Mestrando em Engenharia de Sistemas Elétricos  

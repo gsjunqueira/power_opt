@@ -21,9 +21,10 @@ __author__ = "Giovani Santiago Junqueira"
 import os
 import pandas as pd
 import matplotlib.pyplot as plt
+import seaborn as sns
 
 
-def plot_delta_vs_fob(df_otimizacao: pd.DataFrame):
+def plot_delta_vs_fob(df_otimizacao: pd.DataFrame, com_perda: bool, nome_arquivo: str):
     """
     Gera um gráfico de linha mostrando a relação entre o valor de delta e o FOB (função objetivo).
 
@@ -31,14 +32,15 @@ def plot_delta_vs_fob(df_otimizacao: pd.DataFrame):
         df_otimizacao (pd.DataFrame): DataFrame contendo os resultados dos experimentos com
         diferentes deltas.
     """
+    titulo = "Variação do FOB com o Delta (Com Perda)" if com_perda else "Variação do FOB com o Delta (Sem Perda)"
     plt.figure(figsize=(10, 5))
     plt.plot(df_otimizacao["delta"], df_otimizacao["FOB"], marker='o', markersize=2, linestyle='-')
-    plt.title("Variação do FOB com o Delta")
+    plt.title(titulo)
     plt.xlabel("Delta")
     plt.ylabel("FOB (Função Objetivo)")
     plt.grid(True)
     plt.tight_layout()
-    plt.savefig("results/figs/resultados_delta_vs_fob.png", dpi=300, bbox_inches="tight")
+    plt.savefig(nome_arquivo, dpi=300, bbox_inches="tight")
     plt.show()
 
 
@@ -106,8 +108,8 @@ def plot_geracao(df_geracao: pd.DataFrame, output_path: str = "results/figs/graf
         output_path (str): Caminho do arquivo de imagem a ser salvo.
     """
     plt.figure(figsize=(10, 6))
-    for g in df_geracao["gerador"].unique():
-        dados = df_geracao[df_geracao["gerador"] == g]
+    for g in df_geracao["id"].unique():
+        dados = df_geracao[df_geracao["id"] == g]
         plt.plot(dados["tempo"], dados["valor"], marker='o', label=g)
 
     plt.title("Geração por Gerador ao Longo do Tempo")
@@ -129,8 +131,8 @@ def plot_fluxo(df_fluxo: pd.DataFrame, output_path: str = "results/figs/grafico_
         output_path (str): Caminho do arquivo de imagem a ser salvo.
     """
     plt.figure(figsize=(10, 6))
-    for l in df_fluxo["linha"].unique():
-        dados = df_fluxo[df_fluxo["linha"] == l]
+    for l in df_fluxo["id"].unique():
+        dados = df_fluxo[df_fluxo["id"] == l]
         plt.plot(dados["tempo"], dados["valor"], marker='s', label=l)
 
     plt.title("Fluxo por Linha ao Longo do Tempo")
@@ -152,8 +154,8 @@ def plot_perda(df_perda: pd.DataFrame, output_path: str = "results/figs/grafico_
         output_path (str): Caminho do arquivo de imagem a ser salvo.
     """
     plt.figure(figsize=(10, 6))
-    for l in df_perda["linha"].unique():
-        dados = df_perda[df_perda["linha"] == l]
+    for l in df_perda["id"].unique():
+        dados = df_perda[df_perda["id"] == l]
         plt.plot(dados["tempo"], dados["valor"], marker='^', label=l)
 
     plt.title("Perda por Linha ao Longo do Tempo")
@@ -175,8 +177,8 @@ def plot_deficit(df_deficit: pd.DataFrame, output_path: str = "results/figs/graf
         output_path (str): Caminho do arquivo de imagem a ser salvo.
     """
     plt.figure(figsize=(10, 6))
-    for b in df_deficit["barra"].unique():
-        dados = df_deficit[df_deficit["barra"] == b]
+    for b in df_deficit["id"].unique():
+        dados = df_deficit[df_deficit["id"] == b]
         plt.plot(dados["tempo"], dados["valor"], marker='x', label=b)
 
     plt.title("Déficit por Barra ao Longo do Tempo")
@@ -186,6 +188,119 @@ def plot_deficit(df_deficit: pd.DataFrame, output_path: str = "results/figs/graf
     plt.legend()
     plt.tight_layout()
     plt.savefig(output_path, dpi=300)
+    plt.close()
+
+def plot_box_geracao(df_geracao, output_path: str = "results/figs/boxplot_geracao.png"):
+    """
+    Gera um boxplot da geração por gerador e tempo.
+
+    Cada gerador-tempo (ex: GT1_t0, GT2_t1) é representado como uma categoria
+    distinta no eixo X, permitindo observar a variação da geração em diferentes
+    simulações.
+
+    Parâmetros:
+    ------------
+    df_geracao : pd.DataFrame
+        DataFrame contendo colunas ['id', 'tempo', 'valor'] e múltiplas execuções.
+
+    output_path : str
+        Caminho para salvar a figura PNG gerada.
+    """
+    df_geracao["id_tempo"] = df_geracao["id"] + "_t" + df_geracao["tempo"].astype(str)
+
+    plt.figure(figsize=(6, 6))
+    sns.boxplot(x="id_tempo", y="valor", data=df_geracao, width=0.4)
+    plt.title("Boxplot de Geração por Gerador e Tempo")
+    plt.xlabel("Gerador_Tempo")
+    plt.ylabel("Geração (MW)")
+    plt.grid(True)
+    plt.xticks(rotation=45)
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+
+def plot_box_fluxo(df_fluxo, output_path: str = "results/figs/boxplot_fluxo_por_idtempo.png"):
+    """
+    Gera um boxplot do fluxo de potência por linha e tempo.
+
+    Cada linha-tempo (ex: L0_t0, L3_t2) representa um ponto de observação
+    independente para analisar a variação de fluxos ao longo das execuções.
+
+    Parâmetros:
+    ------------
+    df_fluxo : pd.DataFrame
+        DataFrame com colunas ['id', 'tempo', 'valor'].
+
+    output_path : str
+        Caminho para salvar o gráfico em formato PNG.
+    """
+    df_fluxo["id_tempo"] = df_fluxo["id"] + "_t" + df_fluxo["tempo"].astype(str)
+
+    plt.figure(figsize=(6, 6))
+    sns.boxplot(x="id_tempo", y="valor", data=df_fluxo, width=0.4)
+    plt.title("Boxplot de Fluxo por Linha e Tempo")
+    plt.xlabel("Linha_Tempo")
+    plt.ylabel("Fluxo (pu)")
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+
+def plot_box_deficit(df_deficit, output_path: str = "results/figs/boxplot_deficit_por_idtempo.png"):
+    """
+    Gera um boxplot do déficit por barra e tempo ao longo das simulações.
+
+    Permite visualizar a distribuição do corte de carga em diferentes barras
+    para cada instante de tempo modelado.
+
+    Parâmetros:
+    ------------
+    df_deficit : pd.DataFrame
+        DataFrame com colunas ['id', 'tempo', 'valor'].
+
+    output_path : str
+        Caminho de saída do gráfico PNG.
+    """
+    df_deficit["id_tempo"] = df_deficit["id"] + "_t" + df_deficit["tempo"].astype(str)
+
+    plt.figure(figsize=(6, 6))
+    sns.boxplot(x="id_tempo", y="valor", data=df_deficit, width=0.4)
+    plt.title("Boxplot de Déficit por Barra e Tempo")
+    plt.xlabel("Barra_Tempo")
+    plt.ylabel("Déficit (MW)")
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+
+def plot_box_perda(df_perda, output_path: str = "results/figs/boxplot_perda_por_idtempo.png"):
+    """
+    Gera um boxplot da perda por linha e tempo em todas as simulações.
+
+    O gráfico mostra a variação da perda estimada por linha em cada tempo,
+    útil para identificar linhas críticas ou sobrecarregadas.
+
+    Parâmetros:
+    ------------
+    df_perda : pd.DataFrame
+        DataFrame com colunas ['id', 'tempo', 'valor'].
+
+    output_path : str
+        Caminho para salvar o arquivo PNG gerado.
+    """
+    df_perda["id_tempo"] = df_perda["id"] + "_t" + df_perda["tempo"].astype(str)
+
+    plt.figure(figsize=(6, 6))
+    sns.boxplot(x="id_tempo", y="valor", data=df_perda, width=0.4)
+    plt.title("Boxplot de Perda por Linha e Tempo")
+    plt.xlabel("Linha_Tempo")
+    plt.ylabel("Perda (MW)")
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.tight_layout()
+    plt.savefig(output_path)
     plt.close()
 
 def plot_all(
@@ -209,12 +324,16 @@ def plot_all(
 
     if df_geracao is not None:
         plot_geracao(df_geracao, output_path=os.path.join(pasta_saida, "grafico_geracao.png"))
+        plot_box_geracao(df_geracao, output_path=os.path.join(pasta_saida, "boxplot_geracao.png"))
 
     if df_fluxo is not None:
         plot_fluxo(df_fluxo, output_path=os.path.join(pasta_saida, "grafico_fluxo.png"))
+        plot_box_fluxo(df_fluxo, output_path=os.path.join(pasta_saida, "boxplot_fluxo.png"))
 
     if df_perda is not None:
         plot_perda(df_perda, output_path=os.path.join(pasta_saida, "grafico_perda.png"))
+        plot_box_perda(df_perda, output_path=os.path.join(pasta_saida, "boxplot_perda.png"))
 
     if df_deficit is not None:
         plot_deficit(df_deficit, output_path=os.path.join(pasta_saida, "grafico_deficit.png"))
+        plot_box_deficit(df_deficit, output_path=os.path.join(pasta_saida, "boxplot_deficit.png"))

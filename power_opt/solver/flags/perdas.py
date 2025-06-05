@@ -75,9 +75,9 @@ def calcular_perdas(model, system) -> Tuple[Dict[Tuple[str, int], float], float]
             theta = fluxo / susceptancia if susceptancia != 0 else 0.0
             perda = condutancia * (theta ** 2)
             perda_total += perda
-
             perdas[(linha.from_bus, t)] += 0.5 * perda
             perdas[(linha.to_bus, t)] += 0.5 * perda
+            # print(f'{linha.id}_{t} - fluxo = {fluxo}, perda = {perda}')
 
     return perdas, perda_total
 

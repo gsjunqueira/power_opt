@@ -25,7 +25,7 @@ __author__ = "Giovani Santiago Junqueira"
 # pylint: disable=invalid-name, line-too-long
 
 import os
-from pyomo.environ import ConcreteModel
+from pyomo.environ import ConcreteModel, Suffix
 from pyomo.opt import SolverFactory
 
 from power_opt.solver.handler import (extrair_configuracoes,
@@ -33,7 +33,7 @@ from power_opt.solver.handler import (extrair_configuracoes,
     )
 from power_opt.solver.flags import (inicializar_perdas, armazenar_carga_base, calcular_perdas,
                      atualizar_cargas_com_perdas, calcular_diferenca_perdas)
-from power_opt.solver import build_model
+from power_opt.solver import build_model, safe_del
 
 
 class PyomoSolver:
@@ -55,6 +55,7 @@ class PyomoSolver:
         self._resolvendo_perdas = False
         self.config_flags = None
         self.model_built = False
+        self._perdas_finais = None
 
     def build(self, **kwargs):
         """
@@ -89,16 +90,18 @@ class PyomoSolver:
             Se True, imprime informações detalhadas da solução.
         """
 
-        print("🧩 Entrando no solve()")
-        print(f"Model já construído? {self.model_built}")
+        # print("🧩 Entrando no solve()")
+        # print(f"Model já construído? {self.model_built}")
 
         if self.config_flags.get("considerar_perdas", False):
             self.aplicar_perdas_iterativamente(solver_name=solver_name, tee=tee)
         else:
             if solver_name == 'glpk':
+                safe_del(self.model, 'dual')
+                self.model.dual = Suffix(direction=Suffix.IMPORT)
                 os.environ["PATH"] = "/opt/homebrew/bin:" + os.environ["PATH"]
                 solver = SolverFactory(solver_name, executable="/opt/homebrew/bin/glpsol")
-            else:
+            else:                                                                                                                                                                                                                       
                 solver = SolverFactory(solver_name)
 
             solver.solve(self.model, tee=tee)
@@ -190,7 +193,10 @@ class PyomoSolver:
 
         while not convergiu and iteracao < max_iter:
             # Resolve o modelo com configuração atual
-            if solver_name == 'glpk':
+
+            if solver_name.lower() == 'glpk':
+                safe_del(self.model, 'dual')
+                self.model.dual = Suffix(direction=Suffix.IMPORT)
                 os.environ["PATH"] = "/opt/homebrew/bin:" + os.environ["PATH"]
                 solver = SolverFactory(solver_name, executable="/opt/homebrew/bin/glpsol")
             else:
@@ -198,18 +204,27 @@ class PyomoSolver:
             solver.solve(self.model, tee=tee)
 
             # Calcula perdas e redistribui como carga
+            print(f'iteracao atual = {iteracao}')
             perdas_atuais, perda_total = calcular_perdas(self.model, self.system)
             atualizar_cargas_com_perdas(self.system, carga_base, perdas_atuais)
 
             # Verifica convergência
             delta = calcular_diferenca_perdas(perdas_ant, perdas_atuais)
-            print(f"📦 Iteração {iteracao} - Perda total = {perda_total:.6f}, Δ_per_barra = {delta:.6e}")
+            # print(f"📦 Iteração {iteracao} - Perda total = {perda_total:.6f}, Δ_per_barra = {delta:.6e}")
 
             if delta < epsilon:
                 convergiu = True
+                self._perdas_finais = {
+                    "perda_linha": perdas_atuais,
+                    "perda_total": perda_total,
+                }
+
             else:
                 perdas_ant = perdas_atuais.copy()
                 self.model = ConcreteModel()
+                if solver_name.lower() == 'glpk':
+                    safe_del(self.model, 'dual')
+                    self.model.dual = Suffix(direction=Suffix.IMPORT)
                 self.build(**self.config_flags)
 
             iteracao += 1
@@ -220,6 +235,9 @@ class PyomoSolver:
 
         # Etapa final: resolver uma última vez com modelo já convergido
         self.model = ConcreteModel()
+        if solver_name.lower() == 'glpk':
+            safe_del(self.model, 'dual')
+            self.model.dual = Suffix(direction=Suffix.IMPORT)
         self.model_built = False
         self.build(**self.config_flags)
         if solver_name == 'glpk':

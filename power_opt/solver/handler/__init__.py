@@ -36,6 +36,7 @@ from .output_handler import exportar_saida
 
 from .plot_handler import (
     plot_all, plot_deficit, plot_fluxo, plot_geracao, plot_perda,
+    plot_box_geracao, plot_box_fluxo, plot_box_deficit, plot_box_perda,
     plot_n_menos_1_viabilidade, plot_delta_vs_fob, plot_delta_vs_fob_comparacao
 )
 
@@ -59,5 +60,6 @@ __all__ = [
 
     # Gráficos
     "plot_all", "plot_deficit", "plot_fluxo", "plot_geracao", "plot_perda",
-    "plot_n_menos_1_viabilidade", "plot_delta_vs_fob", "plot_delta_vs_fob_comparacao"
+    "plot_n_menos_1_viabilidade", "plot_delta_vs_fob", "plot_delta_vs_fob_comparacao",
+    "plot_box_geracao", "plot_box_fluxo", "plot_box_deficit", "plot_box_perda"
 ]

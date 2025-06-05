@@ -22,9 +22,10 @@ Autor: Giovani Santiago Junqueira
 __author__ = "Giovani Santiago Junqueira"
 
 # from .modelo_pyomo import PyomoSolver
-from .model_builder import build_model
+from .model_builder import build_model, safe_del
 from .pyomo_solver import PyomoSolver
+from .modelo_pyomo import PyomoSolver_1
 from . import flags
 from . import handler
 
-__all__ = [ "PyomoSolver", "build_model", "flags", "handler"]
+__all__ = [ "PyomoSolver", "build_model", "flags", "handler", "safe_del"]

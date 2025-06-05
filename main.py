@@ -7,15 +7,18 @@ Autor: Giovani Santiago Junqueira
 
 import time
 import pandas as pd
-from power_opt.utils import DataLoader, limpar_cache_py
+from power_opt.utils import (
+    DataLoader, limpar_cache_py, limpar_diretorio,
+    preparar_df, preparar_dados_graficos
+)
 from power_opt.solver import PyomoSolver
 from power_opt.solver.handler import (
     extrair_resultados,
     salvar_resultados_em_csv,
-    exportar_duais_csv_acumulado,
     extrair_duais_em_dataframe,
-    # plot_delta_vs_fob,
-    # plot_delta_vs_fob_comparacao,
+    plot_all,
+    plot_delta_vs_fob,
+    plot_delta_vs_fob_comparacao,
     # # plot_n_menos_1_viabilidade
 )
 
@@ -82,13 +85,15 @@ def executar_experimentos(json_path: str, deltas: list[float], config_base: dict
         # Criar solver
         modelo = PyomoSolver(system)
         config_modelo, config_solver = split_config(config_base)
+        solver_nome = config_solver.get("solver_name", "highs").lower()
         modelo.build(**config_modelo)
         modelo.solve(**config_solver)
 
-        # # Capturar duais se GLPK
-        # if solver_nome == "glpk":
-        #     df_duais = extrair_duais_em_dataframe(modelo)
-        #     exportar_duais_csv_acumulado(df_duais, caminho_csv="results/duais.csv", id_caso=i)
+        # Capturar duais se GLPK
+        if solver_nome == "glpk":
+            df_duais = extrair_duais_em_dataframe(modelo.model)
+            df_duais["caso"] = i
+            df_duais.to_csv("results/csv/duais.csv", mode="a", header=not bool(i), index=False)
 
         # Capturar resultados
         resultado = extrair_resultados(modelo, system=system)
@@ -106,9 +111,10 @@ def main():
     inicio_total = time.time()
     json_path = "data/dados_base.json"
     deltas = [round(0.01 * i, 2) for i in range(0, 101)]
+    # deltas = [round(0.1 * i, 2) for i in range(0, 11)]
     # deltas = [1]
     config_base_com_perda = {
-        "solver_name": "glpk", # "glpk", # "highs",
+        "solver_name": "glpk", # "highs",
         "usar_deficit": True,
         "considerar_fluxo": True,
         "considerar_perdas": True,
@@ -123,17 +129,24 @@ def main():
     simulacoes.append(df_com_perda)
     df_sem_perda, tempo_sem_perda = executar_experimentos(json_path, deltas, config_base_sem_perda)
     simulacoes.append(df_sem_perda)
-    salvar_resultados_em_csv(simulacoes, "results/simulacoes.csv")
-    salvar_resultados_em_csv(df_com_perda, "results/resultados_com_perda.csv")
-    print("✅ Resultados com perdas salvos em 'resultados_com_perda.csv'")
-    salvar_resultados_em_csv(df_sem_perda, "results/resultados_sem_perda.csv")
-    print("✅ Resultados sem perdas salvos em 'resultados_sem_perda.csv'")
+    salvar_resultados_em_csv(simulacoes, "results/csv/simulacoes.csv")
+    salvar_resultados_em_csv(df_com_perda, "results/csv/resultados_com_perda.csv")
+    salvar_resultados_em_csv(df_sem_perda, "results/csv/resultados_sem_perda.csv")
+    print("✅ Resultados salvos em 'results/csv/'")
+
+    df_geracao, df_fluxo, df_deficit, df_perda = preparar_dados_graficos(df_com_perda)
+    fob_com_perda = preparar_df(pd.concat(df_com_perda, ignore_index=True))
+    fob_sem_perda = preparar_df(pd.concat(df_sem_perda, ignore_index=True))
 
     fim_total = time.time()
 
+    plot_all(df_geracao, df_fluxo, df_deficit, df_perda, 'results/figs')
+
+
     # Geração de gráficos
-    # plot_delta_vs_fob(df_com_perda)
-    # plot_delta_vs_fob_comparacao(df_sem_perda, df_com_perda)
+    plot_delta_vs_fob(fob_com_perda, com_perda=True, nome_arquivo="results/figs/fob_com_perda.png")
+    plot_delta_vs_fob(fob_sem_perda, com_perda=False, nome_arquivo="results/figs/fob_sem_perda.png")
+    plot_delta_vs_fob_comparacao(fob_sem_perda, fob_com_perda)
 
     print(
         f"⏱️ Tempo total das {2 * len(deltas)} simulações: {(fim_total - inicio_total):.2f} segundos")
@@ -142,5 +155,8 @@ def main():
 
 
 if __name__ == "__main__":
+    limpar_diretorio("results/csv", extensoes=[".csv"])
+    limpar_diretorio("results/figs", extensoes=[".png"])
+    limpar_diretorio("results", extensoes=[".csv", ".png"])
     main()
     # limpar_cache_py()

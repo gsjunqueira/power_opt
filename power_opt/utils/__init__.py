@@ -19,8 +19,8 @@ __author__ = "Giovani Santiago Junqueira"
 from .loader import DataLoader
 from .clean import limpar_cache_py
 from .clean_handler import limpar_diretorio
-from .converter import preparar_dados_graficos, preparar_df_plot_comparacoes
+from .converter import preparar_dados_graficos, preparar_df
 
 __all__ = ["DataLoader", "limpar_cache_py", "limpar_diretorio",
-           "preparar_dados_graficos", "preparar_df_plot_comparacoes"
+           "preparar_dados_graficos", "preparar_df"
            ]

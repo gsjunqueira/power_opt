@@ -12,74 +12,49 @@ __author__ = "Giovani Santiago Junqueira"
 
 import pandas as pd
 
-def preparar_dados_graficos(lista_resultados: list) -> tuple[pd.DataFrame, pd.DataFrame,
-                                                             pd.DataFrame, pd.DataFrame]:
+def preparar_dados_graficos(lista_resultados: list[pd.DataFrame]) -> tuple[pd.DataFrame, pd.DataFrame,
+                                                                            pd.DataFrame, pd.DataFrame]:
     """
     Converte os resultados consolidados da simulação em DataFrames formatados para os gráficos:
     geração, fluxo, perda e déficit.
 
     Args:
-        lista_resultados (list[dict]): Lista de dicionários contendo resultados das simulações.
+        lista_resultados (list[pd.DataFrame]): Lista de DataFrames contendo resultados das simulações.
 
     Returns:
         Tuple contendo:
-        - df_geracao: DataFrame com colunas ['gerador', 'tempo', 'valor']
-        - df_fluxo: DataFrame com colunas ['linha', 'tempo', 'valor']
-        - df_perda: DataFrame com colunas ['linha', 'tempo', 'valor']
-        - df_deficit: DataFrame com colunas ['barra', 'tempo', 'valor']
+        - df_geracao: DataFrame com colunas ['id', 'tempo', 'valor', 'execucao']
+        - df_fluxo: DataFrame com colunas ['id', 'tempo', 'valor', 'execucao']
+        - df_perda: DataFrame com colunas ['id', 'tempo', 'valor', 'execucao']
+        - df_deficit: DataFrame com colunas ['id', 'tempo', 'valor', 'execucao']
     """
-    dados_geracao = []
-    dados_fluxo = []
-    dados_perda = []
-    dados_deficit = []
+    df_total = pd.concat(lista_resultados, ignore_index=True)
 
-    for resultado in lista_resultados:
-        for entrada in resultado.get("dados", []):
-            tipo = entrada["tipo"]
-            id_ = entrada["id"]
-            tempo = entrada["tempo"]
-            valor = entrada["valor"]
-
-            if tipo == "geracao":
-                dados_geracao.append({"gerador": id_, "tempo": tempo, "valor": valor})
-            elif tipo == "fluxo":
-                dados_fluxo.append({"linha": id_, "tempo": tempo, "valor": valor})
-            elif tipo == "perda":
-                dados_perda.append({"linha": id_, "tempo": tempo, "valor": valor})
-            elif tipo == "deficit":
-                dados_deficit.append({"barra": id_, "tempo": tempo, "valor": valor})
-
-    df_geracao = pd.DataFrame(dados_geracao)
-    df_fluxo = pd.DataFrame(dados_fluxo)
-    df_perda = pd.DataFrame(dados_perda)
-    df_deficit = pd.DataFrame(dados_deficit)
+    df_geracao = df_total[df_total["tipo"] == "geracao"]
+    df_fluxo = df_total[df_total["tipo"] == "fluxo"]
+    df_perda = df_total[df_total["tipo"] == "perda"]
+    df_deficit = df_total[df_total["tipo"] == "deficit"]
 
     return df_geracao, df_fluxo, df_perda, df_deficit
 
-def preparar_df_plot_comparacoes(df_resultados: pd.DataFrame
-                                 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def preparar_df(df: pd.DataFrame) -> pd.DataFrame:
     """
-    Prepara os DataFrames necessários para os gráficos de comparação de FOB com e sem perda
-    e para análise de variação com Delta.
+    Extrai pares (delta, FOB) de um DataFrame de resultados baseado no campo 'simulacao'
+    e no filtro 'tipo' == 'FOB'.
 
     Args:
-        df_resultados (pd.DataFrame): DataFrame consolidado contendo colunas como
-            ['delta', 'FOB', 'Perdas', ...].
+        df (pd.DataFrame): DataFrame com colunas ['simulacao', 'tipo', 'valor']
 
     Returns:
-        tuple:
-            - df_delta_fob (pd.DataFrame): Dados agrupados por Delta e média do FOB.
-            - df_sem_perda (pd.DataFrame): Simulações sem consideração de perdas.
-            - df_com_perda (pd.DataFrame): Simulações com consideração de perdas.
+        pd.DataFrame: DataFrame com colunas ['delta', 'FOB']
     """
-    if "delta" not in df_resultados.columns or "FOB" not in df_resultados.columns:
-        raise ValueError("O DataFrame deve conter as colunas 'delta' e 'FOB'.")
+    # Filtra somente linhas com tipo FOB
+    df_fob = df[df["tipo"] == "FOB"].copy()
 
-    # Subconjuntos por condição
-    df_sem_perda = df_resultados[df_resultados["Perdas"].is_(False)].copy()
-    df_com_perda = df_resultados[df_resultados["Perdas"].is_(True)].copy()
+    # Extrai delta da string simulacao (parte numérica no início)
+    df_fob["delta"] = df_fob["simulacao"].str.extract(r"^(\d{1,3})").astype(int)
 
-    # Média FOB por delta (caso haja mais de uma simulação por delta)
-    df_delta_fob = df_resultados.groupby("delta", as_index=False)["FOB"].mean()
+    # Renomeia a coluna 'valor' para 'FOB' e seleciona apenas as colunas relevantes
+    df_fob = df_fob.rename(columns={"valor": "FOB"})[["delta", "FOB"]]
 
-    return df_delta_fob, df_sem_perda, df_com_perda
+    return df_fob
