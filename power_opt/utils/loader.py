@@ -77,7 +77,7 @@ class DataLoader:
         self._carregar_geradores(data)
         self._carregar_linhas(data)
         self._carregar_cargas(data)
-        if self.system.config.get("usar_deficit", False):
+        if self.system.config.get("deficit", False):
             self._carregar_deficits(data)
         else:
             self._adicionar_geradores_ficticios()
@@ -202,7 +202,7 @@ class DataLoader:
             id_ = f"GF{extrair_numero_id(bus_id)}"
             fict = FictitiousGenerator(bus=bus_id, id_=id_)
             self.system.get_bus(bus_id).add_generator(fict)
-            print(f"⚠️  Fictitious generator added at bus {bus_id} with id {id_}")
+            # print(f"⚠️  Fictitious generator added at bus {bus_id} with id {id_}")
 
     def _carregar_deficits(self, data):
         """
@@ -223,7 +223,7 @@ class DataLoader:
                     cost=d["custo"]
                 )
                 self.system.deficits.append(deficit)
-            print(f"ℹ️  {len(self.system.deficits)} déficits carregados diretamente do JSON.")
+            # print(f"ℹ️  {len(self.system.deficits)} déficits carregados diretamente do JSON.")
         else:
             demanda_por_barra_tempo = defaultdict(float)
             for t, cargas in enumerate(self.system.load_profile):
@@ -240,8 +240,8 @@ class DataLoader:
                     cost=1e6
                 )
                 self.system.deficits.append(deficit)
-            print(f"⚠️  Déficits não definidos no JSON — {len(self.system.deficits
-                  )} gerados automaticamente com custo fixo.")
+            # print(f"⚠️  Déficits não definidos no JSON — {len(self.system.deficits
+            #       )} gerados automaticamente com custo fixo.")
 
     def _carregar_cascata(self, data):
         """
@@ -252,7 +252,7 @@ class DataLoader:
         """
         if self.has_hydro and "cascata" in data:
             self.system.set_cascata(data["cascata"])
-            print(f"ℹ️  Cascata hidráulica carregada com {len(data['cascata'])} relações.")
+            # print(f"ℹ️  Cascata hidráulica carregada com {len(data['cascata'])} relações.")
 
     def _garantir_carga_minima(self):
         """

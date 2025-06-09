@@ -58,3 +58,80 @@ def preparar_df(df: pd.DataFrame) -> pd.DataFrame:
     df_fob = df_fob.rename(columns={"valor": "FOB"})[["delta", "FOB"]]
 
     return df_fob
+
+def split_config(config):
+    """
+    Separa um dicionário de configuração em dois subconjuntos:
+    um para a construção do modelo (Pyomo) e outro para a resolução (solver).
+
+    Essa função permite que todas as configurações do experimento sejam passadas
+    por um único dicionário, mantendo a modularidade e evitando alterações internas
+    nos métodos `build()` e `solve()`.
+
+    Args:
+        config (dict): Dicionário de entrada contendo todas as configurações do experimento,
+            incluindo chaves como 'solver_name', 'tee', 'considerar_fluxo', entre outras.
+
+    Returns:
+        tuple:
+            config_modelo (dict): Subconjunto do dicionário contendo apenas os parâmetros
+                relevantes para a construção do modelo (e.g., considerar_fluxo, considerar_emissao).
+            config_solver (dict): Subconjunto do dicionário contendo os parâmetros relevantes
+                para o solver (e.g., solver_name, tee, tolerancia).
+
+    Example:
+        config = {
+            "solver_name": "highs",
+            "tee": False,
+            "considerar_emissao": True,
+            "considerar_fluxo": True
+        }
+
+        config_modelo, config_solver = split_config(config)
+    """
+    solver_keys = {"solver_name", "tee", "tolerancia"}
+    config_solver = {k: v for k, v in config.items() if k in solver_keys}
+    config_modelo = {k: v for k, v in config.items() if k not in solver_keys}
+    return config_modelo, config_solver
+
+def preparar_n_menos_1(df: pd.DataFrame) -> pd.DataFrame:
+    """
+    Converte o DataFrame de resultados N-1 do formato long para wide,
+    criando colunas como 'ger_GF2_0', 'deficit_B2_1', etc. e incluindo FOB.
+
+    Args:
+        df (pd.DataFrame): DataFrame com resultados no formato long.
+
+    Returns:
+        pd.DataFrame: DataFrame formatado no estilo wide para análise.
+    """
+    # Separar FOB
+    df_fob = df[df["tipo"] == "FOB"][["simulacao", "valor"]].rename(columns={"valor": "FOB"})
+
+    # Filtrar os tipos que queremos pivotar
+    df_variaveis = df[df["tipo"] != "FOB"].copy()
+    df_variaveis["coluna"] = df_variaveis["tipo"] + "_" + df_variaveis["id"].astype(str)
+    df_variaveis.loc[df_variaveis["tempo"].notna(), "coluna"] += "_" + df_variaveis["tempo"].astype(int).astype(str)
+
+    # Pivotar
+    df_wide = df_variaveis.pivot_table(index="simulacao", columns="coluna", values="valor", aggfunc="first")
+
+    # Juntar com FOB
+    df_final = df_wide.reset_index().merge(df_fob, on="simulacao", how="left")
+
+    # Extrair cenário removido do sufixo do identificador
+    df_final["cenario"] = df_final["simulacao"].str.extract(r'_(.*)$')[0]
+
+    # Identificar viabilidade: qualquer déficit > 0 ou gerador fictício > 0 → inviável
+    colunas_deficit = [c for c in df_final.columns if c.startswith("deficit_")]
+    colunas_ger_fict = [c for c in df_final.columns if c.startswith("geracao_GF")]
+
+    # Define condição de inviabilidade
+    cond_deficit = df_final[colunas_deficit].fillna(
+        0).gt(1e-6).any(axis=1) if colunas_deficit else pd.Series([False]*len(df_final))
+    cond_ger_fict = df_final[colunas_ger_fict].fillna(
+        0).gt(1e-6).any(axis=1) if colunas_ger_fict else pd.Series([False]*len(df_final))
+
+    df_final["viavel"] = ~(cond_deficit | cond_ger_fict)
+
+    return df_final

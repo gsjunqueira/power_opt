@@ -43,13 +43,15 @@ def extrair_resultados(model, system, elemento_removido="None"):
     base = system.base_power
 
     delta = int(system.config.get("delta", 0) * 100)
-    emissao = "V" if system.config.get("considerar_emissao", False) else "F"
-    fluxo = "V" if system.config.get("considerar_fluxo", False) else "F"
-    perdas = "V" if system.config.get("considerar_perdas", False) else "F"
-    rampa = "V" if system.config.get("considerar_rampa", False) else "F"
-    deficit = "V" if system.config.get("usar_deficit", False) else "F"
-
-    id_simulacao = f"{delta}{emissao}{fluxo}{perdas}{rampa}{deficit}"
+    emissao = "V" if system.config.get("emissao", False) else "F"
+    transporte = "V" if system.config.get("transporte", False) else "F"
+    fluxo_dc = "V" if system.config.get("fluxo_dc", False) else "F"
+    perdas = "V" if system.config.get("perdas", False) else "F"
+    rampa = "V" if system.config.get("rampa", False) else "F"
+    deficit = "V" if system.config.get("deficit", False) else "F"
+    if fluxo_dc == "V":
+        transporte = "F"
+    id_simulacao = f"{delta}{emissao}{transporte}{fluxo_dc}{perdas}{rampa}{deficit}"
     id_remocao = elemento_removido if elemento_removido is not None else None
 
     id_simulacao += f"_{id_remocao}"

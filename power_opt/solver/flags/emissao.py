@@ -1,48 +1,65 @@
 """
 Módulo `emissao`
 
-Define a contribuição das emissões de CO₂ para a função objetivo no modelo de despacho.
+Define a contribuição das emissões de CO₂ e o custo base da função objetivo.
 
-Aplica penalidades associadas a cada gerador com fator de emissão especificado,
-sendo o impacto ponderado por um parâmetro `delta`.
+Toda a lógica, incluindo casos com ou sem emissão, é encapsulada aqui, mantendo
+a coesão e evitando a dispersão da lógica no model_builder.
 
 Autor: Giovani Santiago Junqueira
 """
 
 __author__ = "Giovani Santiago Junqueira"
 
-from pyomo.environ import Expression
+from pyomo.environ import Param, Expression, NonNegativeReals
+from power_opt.solver.flags import flag_ativa
 
 def aplicar_emissao(model, system):
     """
-    Adiciona a expressão de custo da função objetivo considerando emissões de CO₂.
+    Aplica a penalidade de emissão à função objetivo, ponderada por delta,
+    apenas se a flag `considerar_emissao` estiver ativa.
 
     Args:
         model (ConcreteModel): Modelo Pyomo.
-        system (FullSystem): Sistema com dados e configuração.
-
-    Returns:
-        Expression: expressão a ser incorporada na FOB.
+        system (FullSystem): Sistema com dados e configurações.
     """
-    custo_base = sum(
-        model.P[g, t] * model.custo[g]
-        for g in model.G if not g.startswith("GF")
-        for t in model.T
-    )
+    if flag_ativa("emissao", system):
+        model.custo_base = Expression(
+            expr=sum(
+                model.P[g, t] * model.custo[g]
+                for g in model.G if not g.startswith("GF")
+                for t in model.T
+            )
+        )
 
-    if not system.config.get("considerar_emissao", False):
-        model.fob_emissao = Expression(expr=custo_base)
-        return model.fob_emissao
+        model.emissao = Param(model.G,
+            initialize={g.id: g.emission for bus in system.buses.values() for g in bus.generators},
+            within=NonNegativeReals
+        )
 
-    penal_emissao = sum(
-        model.P[g, t] * model.emissao[g]
-        for g in model.G
-        for t in model.T
-    )
+        model.custo_emissao = Param(
+            initialize=system.config["custo_emissao"],
+            within=NonNegativeReals
+        )
 
-    fob_emissao = model.delta * custo_base + \
-                  (1 - model.delta) * model.custo_emissao * penal_emissao
+        penal_emissao = sum(
+            model.P[g, t] * model.emissao[g]
+            for g in model.G
+            for t in model.T
+        )
 
-    model.fob_emissao = Expression(expr=fob_emissao)
-
-    return model.fob_emissao
+        model.fob_emissao = Expression(
+            expr=model.delta * model.custo_base +
+                (1 - model.delta) * model.custo_emissao * penal_emissao
+        )
+        express = model.fob_emissao
+    else:
+        model.fob_emissao = Expression(
+            expr=sum(
+                model.P[g, t] * model.custo[g]
+                for g in model.G if not g.startswith("GF")
+                for t in model.T
+            )
+        )
+        express = model.fob_emissao
+    return express

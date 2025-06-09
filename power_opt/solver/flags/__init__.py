@@ -17,20 +17,20 @@ Inclui:
 
 __author__ = "Giovani Santiago Junqueira"
 
+from .utils import flag_ativa, safe_del
 from .emissao import aplicar_emissao
 from .deficit import aplicar_deficit
 from .rampa import aplicar_rampa
 from .transporte import aplicar_transporte
-from .perdas import (inicializar_perdas, armazenar_carga_base, calcular_perdas,
-                     atualizar_cargas_com_perdas, calcular_diferenca_perdas)
+from .fluxo_dc import aplicar_fluxo_dc
+from .perdas import (aplicar_perdas_iterativamente)
 __all__ = [
     "aplicar_emissao",
     "aplicar_deficit",
     "aplicar_rampa",
     "aplicar_transporte",
-    "inicializar_perdas",
-    "armazenar_carga_base",
-    "calcular_perdas",
-    "atualizar_cargas_com_perdas",
-    "calcular_diferenca_perdas"
+    "aplicar_fluxo_dc",
+    "aplicar_perdas_iterativamente",
+    "flag_ativa",
+    "safe_del"
 ]

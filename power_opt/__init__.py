@@ -24,3 +24,4 @@ __author__ = "Giovani Santiago Junqueira"
 from . import models
 from . import solver
 from . import utils
+from . import experiments

@@ -15,19 +15,21 @@ def extrair_configuracoes(system):
     """
     config = system.config
     return {
-        "usar_deficit": config.get("usar_deficit", False),
-        "considerar_fluxo": config.get("considerar_fluxo", False),
-        "considerar_perdas": config.get("considerar_perdas", False),
-        "considerar_rampa": config.get("considerar_rampa", False),
-        "considerar_emissao": config.get("considerar_emissao", False),
+        "deficit": config.get("deficit", False),
+        "transporte": config.get("transporte", False),
+        "fluxo_dc": config.get("fluxo_dc", False),
+        "perdas": config.get("perdas", False),
+        "rampa": config.get("rampa", False),
+        "emissao": config.get("emissao", False),
     }
 
 def aplicar_configuracoes(pyomo_solver, config_dict):
     """
     Aplica um dicionário de configurações ao solver PyomoSolver.
     """
-    pyomo_solver.usar_deficit = config_dict["usar_deficit"]
-    pyomo_solver.considerar_fluxo = config_dict["considerar_fluxo"]
-    pyomo_solver.considerar_perdas = config_dict["considerar_perdas"]
-    pyomo_solver.considerar_rampa = config_dict["considerar_rampa"]
-    pyomo_solver.considerar_emissao = config_dict["considerar_emissao"]
+    pyomo_solver.deficit = config_dict["deficit"]
+    pyomo_solver.transporte = config_dict["transporte"]
+    pyomo_solver.fluxo_dc = config_dict["fluxo_dc"]
+    pyomo_solver.perdas = config_dict["perdas"]
+    pyomo_solver.rampa = config_dict["rampa"]
+    pyomo_solver.emissao = config_dict["emissao"]

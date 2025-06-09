@@ -81,16 +81,10 @@ def plot_n_menos_1_viabilidade(df_n_menos_1: pd.DataFrame):
     Args:
         df_n_menos_1 (pd.DataFrame): DataFrame com os resultados do N-1.
     """
-    df_n_menos_1["viavel"] = (df_n_menos_1.get("ger_GF2_0", 0.0) == 0.0) & \
-                             (df_n_menos_1.get("ger_GF2_1", 0.0) == 0.0) & \
-                             (df_n_menos_1.get("ger_GF2_2", 0.0) == 0.0) & \
-                             (df_n_menos_1.get("ger_GF3_0", 0.0) == 0.0) & \
-                             (df_n_menos_1.get("ger_GF3_1", 0.0) == 0.0) & \
-                             (df_n_menos_1.get("ger_GF3_2", 0.0) == 0.0)
 
     df_sorted = df_n_menos_1.sort_values("FOB", ascending=False)
     cores = ["tab:green" if v else "tab:red" for v in df_sorted["viavel"]]
-    plt.figure(figsize=(10, 12))
+    plt.figure(figsize=(6, 6))
     plt.barh(df_sorted["cenario"], df_sorted["FOB"], color=cores)
     plt.title("FOB por Cenário N-1 (Verde = Viável, Vermelho = Inviável)")
     plt.xlabel("FOB")

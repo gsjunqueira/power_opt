@@ -14,10 +14,10 @@ Autor: Giovani Santiago Junqueira
 __author__ = "Giovani Santiago Junqueira"
 
 from pyomo.environ import (
-    Constraint, NonNegativeReals, Objective, Param, Reals,
+    Constraint, NonNegativeReals, Objective, Param,
     Set, Var, minimize, Suffix)
 from power_opt.solver.flags import (
-    aplicar_deficit, aplicar_emissao, aplicar_transporte, aplicar_rampa)
+    aplicar_deficit, aplicar_emissao, aplicar_rampa, aplicar_fluxo_dc, safe_del)
 
 
 def definir_conjuntos(model, system):
@@ -32,10 +32,6 @@ def definir_conjuntos(model, system):
     model.B = Set(initialize=list(system.buses.keys()))
     model.T = Set(initialize=range(len(system.load_profile)))
     model.L = Set(initialize=[linha.id for linha in system.lines])
-
-    if system.config.get("usar_deficit", False):
-
-        model.D = Set(initialize=[(d.bus, d.period) for d in system.deficits], dimen=2)
 
 def definir_parametros(model, system):
     """
@@ -63,58 +59,7 @@ def definir_parametros(model, system):
     model.base = Param(initialize=system.base_power)
     model.delta = Param(initialize=system.config.get("delta", 1))
 
-    if system.config.get("considerar_emissao", False):
-        model.emissao = Param(model.G,
-            initialize={g.id: g.emission for bus in system.buses.values() for g in bus.generators}
-        )
-        model.custo_emissao = Param(initialize=system.config["custo_emissao"])
-
-    if system.config.get("considerar_rampa", False):
-        rampas = {
-            g.id: g.ramp
-            for bus in system.buses.values()
-            for g in bus.generators
-            if hasattr(g, "ramp") and g.ramp is not None
-        }
-        model.rampa = Param(
-            model.G,
-            initialize=rampas,
-            within=NonNegativeReals,
-            default=0.0
-    )
-
-    if system.config.get("usar_deficit", False) and hasattr(model, "D"):
-        model.cost_deficit = Param(
-            model.B, model.T,
-            initialize={(d.bus, d.period): d.cost for d in system.deficits},
-            within=NonNegativeReals,
-            default=0.0
-        )
-
-        model.max_deficit = Param(
-            model.D,
-            initialize={(d.bus, d.period): d.max_deficit for d in system.deficits},
-            within=NonNegativeReals,
-            default=0.0
-        )
-
-    if system.config.get("considerar_fluxo", False):
-        model.susceptance = Param(model.L,
-            initialize={linha.id: linha.susceptance for linha in system.lines},
-            within=Reals
-        )
-        model.conductance = Param(model.L,
-            initialize={linha.id: linha.conductance for linha in system.lines},
-            within=Reals
-        )
-
-        model.f_max = Param(
-            model.L,
-            initialize={linha.id: linha.limit for linha in system.lines},
-            within=NonNegativeReals
-        )
-
-def definir_variaveis(model, system):
+def definir_variaveis(model):
     """
     Define as variáveis de decisão do modelo.
 
@@ -122,19 +67,11 @@ def definir_variaveis(model, system):
         model (ConcreteModel): Modelo Pyomo.
         system (FullSystem): Objeto que contém os dados do sistema elétrico.
     """
-    safe_del(model, 'F')
-    safe_del(model, 'Deficit')
+
     safe_del(model, 'dual')
     safe_del(model, 'P')
 
     model.P = Var(model.G, model.T, domain=NonNegativeReals)
-
-    if system.deficits:
-        model.Deficit = Var(model.D, domain=NonNegativeReals)
-
-    if system.config.get("considerar_fluxo", False):
-        model.F = Var(model.L, model.T, domain=Reals)
-
     model.dual = Suffix(direction=Suffix.IMPORT)
 
 def definir_restricoes(model, system):
@@ -153,36 +90,36 @@ def definir_restricoes(model, system):
         return (model.gmin[g], model.P[g, t], model.gmax[g])
     model.limites = Constraint(model.G, model.T, rule=limites_geracao_rule)
 
-    # Aplica lógica condicional de fluxo (transporte) se configurada
-    aplicar_transporte(model, system)
-
-    # Aplica lógica condicional de rampas se configurada
-    aplicar_rampa(model, system)
 
     # Parte associada ao déficit ou geradores fictícios
     aplicar_deficit(model, system)
 
+    # Aplica lógica condicional de rampas se configurada
+    aplicar_rampa(model, system)
 
-def definir_objetivo(model, system):
+    # Parte do custo total e da penalidade por emissão
+    aplicar_emissao(model, system)
+
+    # Aplica lógica condicional de fluxo dc ou transporte se configurada
+    aplicar_fluxo_dc(model, system)
+
+
+def definir_objetivo(model):
     """
     Define a função objetivo do modelo de otimização.
 
-    A função objetivo pondera o custo de geração, a penalidade por emissão e o custo do déficit.
+    A função objetivo pondera o custo de geração, a penalidade por emissão e o custo do déficit,
+    combinando as expressões previamente definidas nos módulos especializados.
 
     Args:
         model (ConcreteModel): Modelo Pyomo.
         system (FullSystem): Objeto que contém os dados do sistema elétrico.
     """
-    # Parte do custo total e da penalidade por emissão
-    aplicar_emissao(model, system)
 
-
-
-    def f_obj(model): # pylint: disable=unused-argument
-        """FOB = Custo total de geração + penalidade por emissão + custo do déficit"""
-        return model.fob_emissao.expr + model.custo_deficit.expr
-
-    model.objetivo = Objective(rule=f_obj, sense=minimize)
+    model.objetivo = Objective(
+        expr=model.fob_emissao + model.custo_deficit,
+        sense=minimize
+    )
 
 def build_model(model, system):
     """
@@ -202,25 +139,6 @@ def build_model(model, system):
     """
     definir_conjuntos(model, system)
     definir_parametros(model, system)
-    definir_variaveis(model, system)
+    definir_variaveis(model)
     definir_restricoes(model, system)
-    definir_objetivo(model, system)
-
-def safe_del(model, attr):
-    """
-    Remove com segurança um componente do modelo Pyomo, caso ele exista.
-
-    Esta função é utilizada para evitar conflitos ao redefinir variáveis, parâmetros
-    ou restrições em reconstruções iterativas do modelo. Se o atributo estiver presente
-    no modelo, ele será removido explicitamente com `del_component()`.
-
-    Args:
-    -----
-    model : ConcreteModel
-        Instância do modelo Pyomo onde o componente pode existir.
-
-    attr : str
-        Nome do atributo a ser removido do modelo (ex: 'F', 'P', 'dual').
-    """
-    if hasattr(model, attr):
-        model.del_component(getattr(model, attr))
+    definir_objetivo(model)

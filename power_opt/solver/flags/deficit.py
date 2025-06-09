@@ -3,52 +3,63 @@ Módulo `deficit`
 
 Define a modelagem do corte de carga (déficit) no modelo de despacho.
 
-Adiciona variáveis de déficit associadas a cada barra e período de tempo, bem como
-restrições que permitem que a carga não atendida seja penalizada na função objetivo.
+Adiciona variáveis, restrições e expressão de penalidade associadas ao não atendimento.
 
 Autor: Giovani Santiago Junqueira
 """
 
 __author__ = "Giovani Santiago Junqueira"
 
-from pyomo.environ import Constraint, Expression
+from pyomo.environ import Constraint, Expression, Param, Var, NonNegativeReals, Set
+from power_opt.solver.flags import flag_ativa, safe_del
 
 def aplicar_deficit(model, system):
     """
-    Aplica a modelagem de déficit com base na configuração do sistema.
+    Aplica a modelagem do déficit ao modelo Pyomo.
+
+    Define os parâmetros, variáveis, restrições e a expressão de custo associada ao déficit.
 
     Args:
-        model (ConcreteModel): Modelo Pyomo em construção.
-        system (FullSystem): Objeto que contém os dados do sistema.
-    
-    Returns:
-        Expression: parcela de custo associada ao déficit (real ou via gerador fictício).
+        model (ConcreteModel): Modelo Pyomo.
+        system (FullSystem): Dados do sistema elétrico.
     """
-    usar_deficit = system.config.get("usar_deficit", False)
+    if flag_ativa("deficit", system):
+        model.GF = Set(initialize=[g.id for  bus in system.buses.values()
+                                   for g in bus.generators if g.id.startswith("GF")])
+        model.restringe_GF = Constraint(model.GF, model.T, rule=lambda m, g, t: m.P[g, t] == 0)
+        model.D = Set(dimen=2, initialize=lambda m: [(d.bus, d.period) for d in system.deficits])
 
-    if usar_deficit:
-        # # Define a variável Deficit
-        # if hasattr(model, 'Deficit'):
-        #     model.del_component('Deficit')
-        # model.Deficit = Var(model.B, model.T, domain=NonNegativeReals)
+        model.cost_deficit = Param(
+            model.B, model.T,
+            initialize={(d.bus, d.period): d.cost for d in system.deficits},
+            within=NonNegativeReals,
+            default=0.0,
+        )
 
-        # Restrições de limite máximo de déficit
+        model.max_deficit = Param(
+            model.B, model.T,
+            initialize={(d.bus, d.period): d.max_deficit for d in system.deficits},
+            within=NonNegativeReals,
+            default=0.0,
+        )
+
+        safe_del(model, "Deficit")
+        model.Deficit = Var(model.B, model.T, domain=NonNegativeReals)
+
         def limite_deficit_rule(model, b, t):
-            if (b, t) in model.D:
-                return model.Deficit[b, t] <= model.max_deficit[b, t]
-            return Constraint.Skip
+            return model.Deficit[b, t] <= model.max_deficit[b, t]
 
         model.limite_deficit = Constraint(model.B, model.T, rule=limite_deficit_rule)
 
-        # Expressão de custo do déficit
         model.custo_deficit = Expression(
             expr=sum(
                 model.Deficit[b, t] * model.cost_deficit[b, t]
-                for (b, t) in model.D
+                for b in model.B
+                for t in model.T
             )
         )
+        express = model.custo_deficit
     else:
-        # Não usamos variável de déficit, mas o custo dos geradores fictícios deve ser considerado
         model.custo_deficit = Expression(
             expr=sum(
                 model.P[g, t] * model.custo[g]
@@ -56,5 +67,5 @@ def aplicar_deficit(model, system):
                 for t in model.T
             )
         )
-
-    return model.custo_deficit
+        express = model.custo_deficit
+    return express
