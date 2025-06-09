@@ -1,64 +1,91 @@
+# ⚡ power_opt – Otimização de Despacho de Geração Elétrica
 
-# Power Optimization Models
+Este projeto realiza a modelagem e simulação do despacho ótimo de geração elétrica em sistemas de potência, com suporte a múltiplas restrições operativas e funcionalidades configuráveis. A implementação é modular e construída com Pyomo, permitindo expansibilidade, análise de viabilidade (N-1) e comparação entre diferentes configurações operacionais.
 
-Este repositório contém dois projetos distintos para otimização de despacho de geração elétrica:
+## 📁 Estrutura do Projeto
 
----
-
-## ⚙️ Projeto 1: Modelo Original (Arquivo Único)
-
-Este projeto implementa um modelo de despacho de geração elétrica utilizando o Pyomo em um único arquivo principal (`modelo_pyomo.py`). Ele suporta diferentes configurações do sistema elétrico com base em *flags*, incluindo:
-
-- Fluxo de potência linearizado (modelo DC)
-- Perdas elétricas por linha
-- Restrições de rampa para geradores térmicos
-- Penalidades por emissão de CO₂
-- Corte de carga modelado via geradores fictícios
-
-### Execução
-```bash
-python main_1.py
+```text
+power_opt/
+├── data/                  # Arquivos de entrada (JSON)
+├── results/               # Resultados das simulações e gráficos
+│   ├── csv/
+│   └── figs/
+├── power_opt/
+│   ├── models/            # Classes base do sistema (barras, geradores, etc.)
+│   ├── solver/            # Solver Pyomo e módulos auxiliares
+│   │   ├── handler/       # Módulos de configuração, resultados e debug
+│   │   ├── flags/         # Lógicas associadas às flags (rampa, perdas, etc.)
+│   ├── utils/             # Utilitários diversos (leitura de dados, limpeza)
+├── main.py                # Script principal de simulação
+├── requirements.txt       # Dependências do projeto
+├── pyproject.toml         # Configuração do Poetry
 ```
 
----
+## 🚀 Funcionalidades Principais
 
-## 🧩 Projeto 2: Modelo Refatorado (Modular)
+- 📉 Despacho econômico e ambiental com ponderação entre custo e emissão.
+- 🔁 Simulação de contingências N-1 (remoção de gerador ou linha).
+- ♻️ Modelagem de perdas elétricas distribuídas nas barras.
+- 🧮 Fluxo DC com rede de transporte e capacidade limitada por linha.
+- 🔧 Restrições operativas como rampas de geração e limites técnicos.
+- ❌ Modelagem explícita de déficit de carga.
+- 📊 Geração automática de gráficos e relatórios.
 
-Este projeto representa uma versão refatorada e modularizada do modelo anterior. O código foi reestruturado em múltiplos arquivos e pacotes para facilitar manutenção, testes e expansibilidade futura.
+## ⚙️ Instalação
 
-### Estrutura do Projeto
-- `power_opt/models/`: definição de componentes do sistema (geradores, linhas, barras etc.) — **compartilhado**
-- `power_opt/utils/`: utilitários auxiliares como carregamento e limpeza de dados — **compartilhado**
-- `power_opt/solver/`:
-  - `model_builder.py`: construção do modelo Pyomo
-  - `pyomo_solver.py`: orquestrador principal
-  - `handler/`: exportação de resultados, depuração e manipulação de configurações
-  - `flags/`: lógica condicional para ativação de funcionalidades (fluxo, perdas, emissão, rampa, déficit)
+### 1. Clone o repositório e entre no diretório
 
-### Execução
+  ```bash
+  git clone https://github.com/seu-usuario/power_opt.git
+  cd power_opt
+  ```
+
+### 2. Crie o ambiente virtual com [Poetry](https://python-poetry.org/)
+
+  ```bash
+  poetry install
+  ```
+
+### 3. Ative o ambiente
+
+  ```bash
+  poetry shell
+  ```
+
+## 🧪 Como Executar
+
 ```bash
 python main.py
 ```
 
----
+Os arquivos de entrada são lidos de `data/`, e os resultados são salvos automaticamente em `results/csv/` e `results/figs/`.
 
-## 📁 Dados e Resultados
+## 🔍 Simulações N-1
 
-- Dados de entrada: `data/`
-- Resultados de simulações: `results/`, incluindo:
-  - Tabelas CSV consolidadas por tipo de variável
-  - Gráficos (geração, perdas, fluxos, déficit)
-  - Arquivos de log e depuração detalhada por iteração
+O projeto executa automaticamente simulações de contingência para cada linha e gerador, removendo-os do sistema e avaliando:
 
----
+- Viabilidade (sem déficit ou geração fictícia).
+- Custo de operação (FOB).
+- Impacto da contingência.
 
-## 📌 Observações
+Gráficos são gerados em `results/figs/resultados_n_menos_1.png`.
 
-- Ambos os projetos utilizam o solver **HiGHS** ou **GLPK** via Pyomo.
-- Para reproduzir os experimentos com diferentes valores de `delta`, consulte os scripts `main_1.py` (original) e `main.py` (refatorado).
-- O Projeto 2 substitui os geradores fictícios por variáveis explícitas de déficit e permite rastreamento modular de perdas, rampas e emissões.
+## 📈 Gráficos Gerados
 
----
+- FOB vs. δ com e sem perdas.
+- Comparação de desempenho para cada configuração.
+- Diagnóstico de viabilidade por cenário N-1.
+
+## 📌 Requisitos
+
+- Python ≥ 3.10
+- Pyomo
+- pandas, matplotlib, numpy
+- Solver externo compatível (GLPK, HiGHS etc.)
+
+## 📚 Créditos
+
+Este projeto foi desenvolvido como parte dos estudos de otimização em sistemas elétricos, com foco em modularização, desempenho e clareza dos resultados.
 
 ## 👨‍💻 Autores
 
